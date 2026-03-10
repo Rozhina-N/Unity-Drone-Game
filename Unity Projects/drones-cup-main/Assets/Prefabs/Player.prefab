@@ -662,7 +662,7 @@ MonoBehaviour:
         m_CallState: 2
     m_ActionId: ae3af7e6-c036-45cb-8362-1c3608fe268b
     m_ActionName: 'Gameplay/Shoot[/Keyboard/e,/DualShock4GamepadHID/buttonWest]'
-  m_NeverAutoSwitchControlSchemes: 0
+  m_NeverAutoSwitchControlSchemes: 1
   m_DefaultControlScheme: 
   m_DefaultActionMap: Gameplay
   m_SplitScreenIndex: -1
@@ -748,6 +748,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerSetup
   playerRenderer: {fileID: 8091729507605585472}
+  PlayerColor: {r: 0, g: 0, b: 0, a: 0}
 --- !u!114 &4717889769461006847
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -763,3 +764,4 @@ MonoBehaviour:
   bulletPrefab: {fileID: 8649018865766371768, guid: 18dcc57170e801a4b97bda727e84662c, type: 3}
   laserSpawnPoint: {fileID: 3652833120021890655}
   energyCost: 5
+  isFlying: 0

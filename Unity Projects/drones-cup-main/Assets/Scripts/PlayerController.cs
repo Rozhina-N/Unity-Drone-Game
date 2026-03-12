@@ -6,7 +6,7 @@ public class PlayerController : MonoBehaviour
     [Header("Movement Settings")]
     [SerializeField] private float speed = 5f;
     [SerializeField] private float jumpHeight = 2f;
-    [SerializeField] private float gravity = -9.8f;
+    [SerializeField] private float gravity = 9.8f;
     
     [Header("Rotation Settings")]
     [SerializeField] private float turnSpeed = 720f; // Degrees per second
@@ -25,14 +25,22 @@ public class PlayerController : MonoBehaviour
         moveInput = context.ReadValue<Vector2>();
     }
 
-    public void Jump(InputAction.CallbackContext context)
+    public void Ascend(InputAction.CallbackContext context)
     {
         if (context.performed && controller.isGrounded)
         {
-            velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
+            velocity.y += gravity; 
         }
     }
-    
+
+    public void Decend(InputAction.CallbackContext context)
+    {
+        if (context.performed && !controller.isGrounded)
+        {
+            velocity.y -= gravity;
+        }
+    }
+
     void Update()
     {
         Vector3 move = new Vector3(moveInput.x, 0, moveInput.y);

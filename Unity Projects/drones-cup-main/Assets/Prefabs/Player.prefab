@@ -634,7 +634,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 5922747830005051802}
         m_TargetAssemblyTypeName: PlayerController, Assembly-CSharp
-        m_MethodName: Jump
+        m_MethodName: Ascend
         m_Mode: 0
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -662,6 +662,22 @@ MonoBehaviour:
         m_CallState: 2
     m_ActionId: ae3af7e6-c036-45cb-8362-1c3608fe268b
     m_ActionName: 'Gameplay/Shoot[/Keyboard/e,/DualShock4GamepadHID/buttonWest]'
+  - m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 5922747830005051802}
+        m_TargetAssemblyTypeName: PlayerController, Scripts
+        m_MethodName: Decend
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+    m_ActionId: 44f6c3a8-c20f-4678-8db6-fa42924aa8ec
+    m_ActionName: 'Gameplay/Decend[/Keyboard/shift]'
   m_NeverAutoSwitchControlSchemes: 1
   m_DefaultControlScheme: 
   m_DefaultActionMap: Gameplay

@@ -662,6 +662,38 @@ MonoBehaviour:
         m_CallState: 2
     m_ActionId: ae3af7e6-c036-45cb-8362-1c3608fe268b
     m_ActionName: 'Gameplay/Shoot[/Keyboard/e,/DualShock4GamepadHID/buttonWest]'
+  - m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 5922747830005051802}
+        m_TargetAssemblyTypeName: 
+        m_MethodName: 
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: 
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+    m_ActionId: 6f362f93-b5c2-4295-9d17-a71686db0c93
+    m_ActionName: 'Gameplay/Decend[/Keyboard/shift]'
+  - m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 5922747830005051802}
+        m_TargetAssemblyTypeName: 
+        m_MethodName: 
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: 
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+    m_ActionId: 75b3a06a-201f-4a32-87b7-df121f102c31
+    m_ActionName: 'Gameplay/Ascend[/Keyboard/space]'
   m_NeverAutoSwitchControlSchemes: 0
   m_DefaultControlScheme: 
   m_DefaultActionMap: Gameplay
@@ -748,6 +780,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerSetup
   playerRenderer: {fileID: 8091729507605585472}
+  PlayerColor: {r: 0, g: 0, b: 0, a: 0}
 --- !u!114 &4717889769461006847
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -763,3 +796,4 @@ MonoBehaviour:
   bulletPrefab: {fileID: 8649018865766371768, guid: 18dcc57170e801a4b97bda727e84662c, type: 3}
   laserSpawnPoint: {fileID: 3652833120021890655}
   energyCost: 5
+  isFlying: 0

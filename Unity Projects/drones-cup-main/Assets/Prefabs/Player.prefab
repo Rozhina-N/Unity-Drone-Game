@@ -632,22 +632,6 @@ MonoBehaviour:
     m_ActionName: 'Gameplay/Move[/Keyboard/w,/Keyboard/s,/Keyboard/a,/Keyboard/d]'
   - m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 5922747830005051802}
-        m_TargetAssemblyTypeName: PlayerController, Assembly-CSharp
-        m_MethodName: Jump
-        m_Mode: 0
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-    m_ActionId: e40e6650-da12-43b4-bc35-741ce71657b8
-    m_ActionName: 'Gameplay/Jump[/Keyboard/space]'
-  - m_PersistentCalls:
-      m_Calls:
       - m_Target: {fileID: 4717889769461006847}
         m_TargetAssemblyTypeName: ShootLogic, Assembly-CSharp
         m_MethodName: Shoot
@@ -677,7 +661,7 @@ MonoBehaviour:
           m_BoolArgument: 0
         m_CallState: 2
     m_ActionId: 6f362f93-b5c2-4295-9d17-a71686db0c93
-    m_ActionName: 'Gameplay/Decend[/Keyboard/shift]'
+    m_ActionName: 'Gameplay/Descend[/Keyboard/shift]'
   - m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 5922747830005051802}
@@ -737,8 +721,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
   speed: 15
-  jumpHeight: 2
-  gravity: -9.8
+  verticalSpeed: 15
   turnSpeed: 720
 --- !u!114 &8040922750949385360
 MonoBehaviour:

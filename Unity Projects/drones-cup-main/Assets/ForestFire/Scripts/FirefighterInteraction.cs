@@ -2,6 +2,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+[RequireComponent(typeof(PlayerInput))]
 public class FirefighterInteraction : MonoBehaviour
 {
     [Header("Optional References")]
@@ -16,11 +17,26 @@ public class FirefighterInteraction : MonoBehaviour
     private readonly HashSet<FlammableTree> activeTargets = new HashSet<FlammableTree>();
     private readonly HashSet<FlammableTree> frameTargets = new HashSet<FlammableTree>();
     private readonly List<FlammableTree> stopBuffer = new List<FlammableTree>();
+    private bool isExtinguishHeld;
+
+    public void Extinguish(InputAction.CallbackContext context)
+    {
+        if (context.started || context.performed)
+        {
+            isExtinguishHeld = true;
+            return;
+        }
+
+        if (context.canceled)
+        {
+            isExtinguishHeld = false;
+            ClearActiveTargets();
+        }
+    }
 
     private void Update()
     {
-        bool isHoldingExtinguish = Keyboard.current != null && Keyboard.current.qKey.isPressed;
-        if (!isHoldingExtinguish)
+        if (!isExtinguishHeld)
         {
             ClearActiveTargets();
             return;
@@ -31,6 +47,7 @@ public class FirefighterInteraction : MonoBehaviour
 
     private void OnDisable()
     {
+        isExtinguishHeld = false;
         ClearActiveTargets();
     }
 

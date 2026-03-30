@@ -4,6 +4,7 @@ using UnityEngine;
 public class ForestSpawner : MonoBehaviour
 {
     private const string DefaultSpawnParentName = "Spawned Trees";
+    public Transform SpawnedTreeRoot => spawnedTreeParent != null ? spawnedTreeParent : transform.Find(DefaultSpawnParentName);
 
     [Header("References")]
     [SerializeField] private BoxCollider spawnArea;

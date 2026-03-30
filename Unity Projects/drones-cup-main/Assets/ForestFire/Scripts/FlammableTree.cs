@@ -29,11 +29,13 @@ public class FlammableTree : MonoBehaviour
     private string treeColorPropertyName;
     private Color normalTreeColor = Color.white;
     private float burnTimer;
+    private bool ignitionBlocked;
     private BurnState burnState = BurnState.Normal;
 
     public bool IsBurning => burnState == BurnState.Burning;
     public bool IsBurnt => burnState == BurnState.Burnt;
-    public bool CanIgnite => burnState == BurnState.Normal;
+    public bool IsIgnitionBlocked => ignitionBlocked;
+    public bool CanIgnite => burnState == BurnState.Normal && !ignitionBlocked;
     public FireVisual ActiveFireVisual => activeFireVisual;
 
     private void Reset()
@@ -100,6 +102,21 @@ public class FlammableTree : MonoBehaviour
         UpdateBurningVisuals(0f);
     }
 
+    public bool CanBeIgnitedBySpread(bool allowIgnitionBlocked)
+    {
+        if (burnState != BurnState.Normal)
+        {
+            return false;
+        }
+
+        return !ignitionBlocked || allowIgnitionBlocked;
+    }
+
+    public void SetIgnitionBlocked(bool blocked)
+    {
+        ignitionBlocked = blocked;
+    }
+
     public void StopFire()
     {
         ResetTreeState();
@@ -150,6 +167,7 @@ public class FlammableTree : MonoBehaviour
     private void ResetTreeState()
     {
         burnTimer = 0f;
+        ignitionBlocked = false;
         burnState = BurnState.Normal;
         ApplyTreeColor(normalTreeColor);
 

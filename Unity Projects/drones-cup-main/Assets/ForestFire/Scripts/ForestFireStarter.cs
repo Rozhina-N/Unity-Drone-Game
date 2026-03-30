@@ -72,7 +72,7 @@ public class ForestFireStarter : MonoBehaviour
         for (int i = 0; i < allTrees.Length; i++)
         {
             FlammableTree tree = allTrees[i];
-            if (tree == null || tree.IsBurning)
+            if (tree == null || !tree.CanIgnite)
             {
                 continue;
             }

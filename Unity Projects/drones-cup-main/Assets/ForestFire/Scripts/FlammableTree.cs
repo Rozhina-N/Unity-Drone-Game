@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public class FlammableTree : MonoBehaviour
 {
@@ -9,6 +9,7 @@ public class FlammableTree : MonoBehaviour
     {
         Normal,
         Burning,
+        Extinguishing,
         Burnt
     }
 
@@ -16,10 +17,16 @@ public class FlammableTree : MonoBehaviour
     [SerializeField] private Transform fireAttachPoint;
     [SerializeField] private FireVisual fireVisualPrefab;
     [SerializeField] private Material burningFireMaterial;
+    [SerializeField] private Material extinguishingFireMaterial;
 
     [Header("Burn Settings")]
     [SerializeField] [Min(0.1f)] private float burnDuration = 8f;
     [SerializeField] [Range(0f, 1f)] private float redTintIntensity = 0.65f;
+
+    [Header("Extinguish Settings")]
+    [SerializeField] [Min(0.1f)] private float extinguishDuration = 2f;
+    [SerializeField] [Min(0f)] private float shrinkSpeed = 1f;
+    [SerializeField] private bool blockIgnitionAfterSuccessfulExtinguish = true;
 
     [Header("Tree Visual")]
     [SerializeField] private Renderer treeRenderer;
@@ -28,14 +35,19 @@ public class FlammableTree : MonoBehaviour
     private MaterialPropertyBlock treePropertyBlock;
     private string treeColorPropertyName;
     private Color normalTreeColor = Color.white;
+    private Color extinguishStartColor = Color.white;
     private float burnTimer;
+    private float extinguishTimer;
     private bool ignitionBlocked;
     private BurnState burnState = BurnState.Normal;
 
     public bool IsBurning => burnState == BurnState.Burning;
+    public bool IsExtinguishing => burnState == BurnState.Extinguishing;
     public bool IsBurnt => burnState == BurnState.Burnt;
     public bool IsIgnitionBlocked => ignitionBlocked;
     public bool CanIgnite => burnState == BurnState.Normal && !ignitionBlocked;
+    public bool CanBeExtinguished => burnState == BurnState.Burning || burnState == BurnState.Extinguishing;
+    public Vector3 FireWorldPosition => fireAttachPoint != null ? fireAttachPoint.position : transform.position;
     public FireVisual ActiveFireVisual => activeFireVisual;
 
     private void Reset()
@@ -59,6 +71,7 @@ public class FlammableTree : MonoBehaviour
         activeFireVisual = GetComponentInChildren<FireVisual>(true);
         if (activeFireVisual != null)
         {
+            activeFireVisual.ResetVisualState();
             activeFireVisual.SetVisible(false);
         }
 
@@ -67,39 +80,50 @@ public class FlammableTree : MonoBehaviour
 
     private void Update()
     {
-        if (!IsBurning)
+        if (burnState == BurnState.Burning)
         {
+            UpdateBurning();
             return;
         }
 
-        burnTimer += Time.deltaTime;
-        float burnProgress = Mathf.Clamp01(burnTimer / burnDuration);
-        UpdateBurningVisuals(burnProgress);
-
-        if (burnProgress >= 1f)
+        if (burnState == BurnState.Extinguishing)
         {
-            BecomeBurnt();
+            UpdateExtinguishing();
         }
     }
 
     public void Ignite()
     {
-        if (!CanIgnite)
+        TryIgnite(false);
+    }
+
+    public bool TryIgnite(bool ignoreIgnitionBlock)
+    {
+        if (burnState != BurnState.Normal)
         {
-            return;
+            return false;
+        }
+
+        if (ignitionBlocked && !ignoreIgnitionBlock)
+        {
+            return false;
         }
 
         if (!TryGetOrCreateFireVisual())
         {
-            return;
+            return false;
         }
 
+        ignitionBlocked = false;
+        activeFireVisual.ResetVisualState();
         activeFireVisual.ApplyMaterial(burningFireMaterial);
         activeFireVisual.SetVisible(true);
 
         burnTimer = 0f;
+        extinguishTimer = 0f;
         burnState = BurnState.Burning;
         UpdateBurningVisuals(0f);
+        return true;
     }
 
     public bool CanBeIgnitedBySpread(bool allowIgnitionBlocked)
@@ -115,6 +139,55 @@ public class FlammableTree : MonoBehaviour
     public void SetIgnitionBlocked(bool blocked)
     {
         ignitionBlocked = blocked;
+    }
+
+    public void BeginExtinguishing()
+    {
+        if (!CanBeExtinguished)
+        {
+            return;
+        }
+
+        if (!TryGetOrCreateFireVisual())
+        {
+            return;
+        }
+
+        if (burnState != BurnState.Extinguishing)
+        {
+            burnState = BurnState.Extinguishing;
+            extinguishTimer = 0f;
+            extinguishStartColor = GetCurrentBurnColor();
+            activeFireVisual.ResetVisualState();
+        }
+
+        if (extinguishingFireMaterial != null)
+        {
+            activeFireVisual.ApplyMaterial(extinguishingFireMaterial);
+        }
+
+        activeFireVisual.SetVisible(true);
+        UpdateExtinguishingVisuals(GetExtinguishProgress());
+    }
+
+    public void StopExtinguishing()
+    {
+        if (burnState != BurnState.Extinguishing)
+        {
+            return;
+        }
+
+        burnState = BurnState.Burning;
+        extinguishTimer = 0f;
+
+        if (activeFireVisual != null)
+        {
+            activeFireVisual.ResetVisualState();
+            activeFireVisual.ApplyMaterial(burningFireMaterial);
+            activeFireVisual.SetVisible(true);
+        }
+
+        UpdateBurningVisuals(GetBurnProgress());
     }
 
     public void StopFire()
@@ -146,11 +219,64 @@ public class FlammableTree : MonoBehaviour
         StopFire();
     }
 
+    private void UpdateBurning()
+    {
+        burnTimer += Time.deltaTime;
+        float burnProgress = GetBurnProgress();
+        UpdateBurningVisuals(burnProgress);
+
+        if (burnProgress >= 1f)
+        {
+            BecomeBurnt();
+        }
+    }
+
+    private void UpdateExtinguishing()
+    {
+        extinguishTimer += Time.deltaTime;
+        float extinguishProgress = GetExtinguishProgress();
+        UpdateExtinguishingVisuals(extinguishProgress);
+
+        if (extinguishProgress >= 1f)
+        {
+            CompleteExtinguish();
+        }
+    }
+
     private void UpdateBurningVisuals(float burnProgress)
     {
-        Color targetBurnColor = Color.Lerp(normalTreeColor, Color.red, redTintIntensity);
-        Color currentBurnColor = Color.Lerp(normalTreeColor, targetBurnColor, burnProgress);
-        ApplyTreeColor(currentBurnColor);
+        ApplyTreeColor(GetBurnColorForProgress(burnProgress));
+
+        if (activeFireVisual != null)
+        {
+            activeFireVisual.SetScaleMultiplier(1f);
+        }
+    }
+
+    private void UpdateExtinguishingVisuals(float extinguishProgress)
+    {
+        float scaleMultiplier = Mathf.Clamp01(1f - (extinguishProgress * shrinkSpeed));
+        ApplyTreeColor(Color.Lerp(extinguishStartColor, normalTreeColor, extinguishProgress));
+
+        if (activeFireVisual != null)
+        {
+            activeFireVisual.SetScaleMultiplier(scaleMultiplier);
+        }
+    }
+
+    private void CompleteExtinguish()
+    {
+        burnTimer = 0f;
+        extinguishTimer = 0f;
+        burnState = BurnState.Normal;
+        ignitionBlocked = blockIgnitionAfterSuccessfulExtinguish;
+        ApplyTreeColor(normalTreeColor);
+
+        if (activeFireVisual != null)
+        {
+            activeFireVisual.ResetVisualState();
+            activeFireVisual.SetVisible(false);
+        }
     }
 
     private void BecomeBurnt()
@@ -160,6 +286,7 @@ public class FlammableTree : MonoBehaviour
 
         if (activeFireVisual != null)
         {
+            activeFireVisual.ResetVisualState();
             activeFireVisual.SetVisible(false);
         }
     }
@@ -167,14 +294,38 @@ public class FlammableTree : MonoBehaviour
     private void ResetTreeState()
     {
         burnTimer = 0f;
+        extinguishTimer = 0f;
         ignitionBlocked = false;
         burnState = BurnState.Normal;
+        extinguishStartColor = normalTreeColor;
         ApplyTreeColor(normalTreeColor);
 
         if (activeFireVisual != null)
         {
+            activeFireVisual.ResetVisualState();
             activeFireVisual.SetVisible(false);
         }
+    }
+
+    private float GetBurnProgress()
+    {
+        return Mathf.Clamp01(burnTimer / burnDuration);
+    }
+
+    private float GetExtinguishProgress()
+    {
+        return Mathf.Clamp01(extinguishTimer / extinguishDuration);
+    }
+
+    private Color GetCurrentBurnColor()
+    {
+        return GetBurnColorForProgress(GetBurnProgress());
+    }
+
+    private Color GetBurnColorForProgress(float burnProgress)
+    {
+        Color targetBurnColor = Color.Lerp(normalTreeColor, Color.red, redTintIntensity);
+        return Color.Lerp(normalTreeColor, targetBurnColor, burnProgress);
     }
 
     private bool TryGetOrCreateFireVisual()
@@ -193,6 +344,7 @@ public class FlammableTree : MonoBehaviour
         Transform attachTarget = fireAttachPoint != null ? fireAttachPoint : transform;
         activeFireVisual = Instantiate(fireVisualPrefab, attachTarget, false);
         activeFireVisual.name = fireVisualPrefab.name;
+        activeFireVisual.ResetVisualState();
         activeFireVisual.SetVisible(false);
         return true;
     }

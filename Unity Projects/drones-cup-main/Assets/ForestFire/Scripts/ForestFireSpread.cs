@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 public class ForestFireSpread : MonoBehaviour
@@ -77,7 +77,7 @@ public class ForestFireSpread : MonoBehaviour
             return;
         }
 
-        targetTree.Ignite();
+        targetTree.TryIgnite(allowSpreadToIgniteBlockedTrees);
     }
 
     private List<FlammableTree> GetNearbyCandidates(FlammableTree sourceTree, FlammableTree[] allTrees)

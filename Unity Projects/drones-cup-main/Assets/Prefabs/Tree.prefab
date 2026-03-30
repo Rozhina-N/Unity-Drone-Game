@@ -160,6 +160,10 @@ MonoBehaviour:
   fireAttachPoint: {fileID: 1611105161070902893}
   fireVisualPrefab: {fileID: 2636517860975272503, guid: e272b82e4383f404eb06d9c648d5d26d, type: 3}
   burningFireMaterial: {fileID: 2100000, guid: ff9c6a74293f81b41974d16787249e9d, type: 2}
+  extinguishingFireMaterial: {fileID: 2100000, guid: f4d920f25d30a7245bbead4702d29073, type: 2}
   burnDuration: 15
   redTintIntensity: 0.65
+  extinguishDuration: 2
+  shrinkSpeed: 1
+  blockIgnitionAfterSuccessfulExtinguish: 1
   treeRenderer: {fileID: 0}

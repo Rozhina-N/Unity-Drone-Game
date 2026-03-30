@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public class FireVisual : MonoBehaviour
 {
@@ -12,6 +12,7 @@ public class FireVisual : MonoBehaviour
     private Vector3 baseLocalScale;
     private Quaternion baseLocalRotation;
     private float animationTime;
+    private float scaleMultiplier = 1f;
     private bool baseTransformCached;
 
     private void Awake()
@@ -62,6 +63,24 @@ public class FireVisual : MonoBehaviour
         targetRenderer.sharedMaterial = material;
     }
 
+    public void SetScaleMultiplier(float multiplier)
+    {
+        scaleMultiplier = Mathf.Max(0f, multiplier);
+        ApplyMotion();
+    }
+
+    public void ResetVisualState()
+    {
+        if (!baseTransformCached)
+        {
+            CacheBaseTransform();
+        }
+
+        animationTime = 0f;
+        scaleMultiplier = 1f;
+        RestoreBaseTransform();
+    }
+
     public void SetVisible(bool visible)
     {
         gameObject.SetActive(visible);
@@ -69,8 +88,13 @@ public class FireVisual : MonoBehaviour
 
     private void ApplyMotion()
     {
+        if (!baseTransformCached)
+        {
+            CacheBaseTransform();
+        }
+
         float pulseMultiplier = 1f + (Mathf.Sin(animationTime * pulseSpeed) * pulseAmount);
-        transform.localScale = baseLocalScale * pulseMultiplier;
+        transform.localScale = baseLocalScale * (pulseMultiplier * scaleMultiplier);
         transform.localRotation = baseLocalRotation * Quaternion.Euler(0f, 0f, animationTime * rotationSpeed);
     }
 

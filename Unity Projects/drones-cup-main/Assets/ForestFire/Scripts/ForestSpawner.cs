@@ -23,6 +23,7 @@ public class ForestSpawner : MonoBehaviour
     [Header("Forest Openings")]
     [SerializeField] [Min(0)] private int openingCount = 3;
     [SerializeField] [Min(0f)] private float openingRadius = 4f;
+    [SerializeField] [Min(0f)] private float openingBorderPadding = 2f;
 
     [Header("Spawning")]
     [SerializeField] private bool spawnOnStart = true;
@@ -145,27 +146,44 @@ public class ForestSpawner : MonoBehaviour
 
     private void GenerateOpenings()
     {
+        float openingCenterBorderPadding = openingRadius + openingBorderPadding;
+
         for (int i = 0; i < openingCount; i++)
         {
-            Vector3 openingPosition = GetRandomWorldPosition();
+            Vector3 openingPosition = GetRandomWorldPosition(openingCenterBorderPadding, i == 0);
             openingCenters.Add(new Vector2(openingPosition.x, openingPosition.z));
         }
     }
 
     private Vector3 GetRandomWorldPosition()
     {
-        Vector3 localCenter = spawnArea.center;
-        Vector3 localSize = spawnArea.size;
+        return GetRandomWorldPosition(0f, false);
+    }
 
-        float randomX = Random.Range(-localSize.x * 0.5f, localSize.x * 0.5f);
-        float randomZ = Random.Range(-localSize.z * 0.5f, localSize.z * 0.5f);
+    private Vector3 GetRandomWorldPosition(float borderPadding, bool warnIfClamped)
+    {
+        Vector3 localCenter = spawnArea.center;
+        Vector3 halfSize = spawnArea.size * 0.5f;
+
+        float safeHalfX = Mathf.Max(halfSize.x - borderPadding, 0f);
+        float safeHalfZ = Mathf.Max(halfSize.z - borderPadding, 0f);
+
+        if (warnIfClamped && (safeHalfX <= 0f || safeHalfZ <= 0f))
+        {
+            Debug.LogWarning(
+                $"ForestSpawner on {name} does not have much room for the requested opening border padding. " +
+                "Openings may bunch up toward the center unless you reduce Opening Radius or Opening Border Padding, or enlarge the spawn area.",
+                this);
+        }
+
+        float randomX = Random.Range(-safeHalfX, safeHalfX);
+        float randomZ = Random.Range(-safeHalfZ, safeHalfZ);
 
         Vector3 localPosition = localCenter + new Vector3(randomX, 0f, randomZ);
         Vector3 worldPosition = spawnArea.transform.TransformPoint(localPosition);
         worldPosition.y = fixedY;
         return worldPosition;
     }
-
     private bool IsInsideOpening(Vector2 candidatePosition)
     {
         if (openingRadius <= 0f)
@@ -225,5 +243,6 @@ public class ForestSpawner : MonoBehaviour
         }
     }
 }
+
 
 

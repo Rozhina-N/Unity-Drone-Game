@@ -24,6 +24,7 @@ public class ForestSpawner : MonoBehaviour
     [SerializeField] [Min(0)] private int openingCount = 3;
     [SerializeField] [Min(0f)] private float openingRadius = 4f;
     [SerializeField] [Min(0f)] private float openingBorderPadding = 2f;
+    [SerializeField] [Min(0f)] private float minimumDistanceBetweenOpenings = 2f;
 
     [Header("Spawning")]
     [SerializeField] private bool spawnOnStart = true;
@@ -31,6 +32,7 @@ public class ForestSpawner : MonoBehaviour
 
     private readonly List<Vector2> openingCenters = new List<Vector2>();
     private readonly List<Vector2> placedTreePositions = new List<Vector2>();
+    private const int OpeningPlacementAttemptsPerOpening = 20;
 
     private void Start()
     {
@@ -147,11 +149,35 @@ public class ForestSpawner : MonoBehaviour
     private void GenerateOpenings()
     {
         float openingCenterBorderPadding = openingRadius + openingBorderPadding;
+        float minimumOpeningCenterDistance = (openingRadius * 2f) + minimumDistanceBetweenOpenings;
 
         for (int i = 0; i < openingCount; i++)
         {
-            Vector3 openingPosition = GetRandomWorldPosition(openingCenterBorderPadding, i == 0);
-            openingCenters.Add(new Vector2(openingPosition.x, openingPosition.z));
+            bool placedOpening = false;
+
+            for (int attempt = 0; attempt < OpeningPlacementAttemptsPerOpening; attempt++)
+            {
+                Vector3 openingPosition = GetRandomWorldPosition(openingCenterBorderPadding, i == 0 && attempt == 0);
+                Vector2 openingCenter = new Vector2(openingPosition.x, openingPosition.z);
+
+                if (IsTooCloseToAnotherOpening(openingCenter, minimumOpeningCenterDistance))
+                {
+                    continue;
+                }
+
+                openingCenters.Add(openingCenter);
+                placedOpening = true;
+                break;
+            }
+
+            if (!placedOpening)
+            {
+                Debug.LogWarning(
+                    $"ForestSpawner on {name} only placed {openingCenters.Count} / {openingCount} openings. " +
+                    "Try lowering Opening Radius, Opening Border Padding, or Minimum Distance Between Openings, or enlarge the spawn area.",
+                    this);
+                break;
+            }
         }
     }
 
@@ -194,6 +220,24 @@ public class ForestSpawner : MonoBehaviour
         for (int i = 0; i < openingCenters.Count; i++)
         {
             if (Vector2.Distance(candidatePosition, openingCenters[i]) < openingRadius)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool IsTooCloseToAnotherOpening(Vector2 candidatePosition, float minimumCenterDistance)
+    {
+        if (minimumCenterDistance <= 0f)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < openingCenters.Count; i++)
+        {
+            if (Vector2.Distance(candidatePosition, openingCenters[i]) < minimumCenterDistance)
             {
                 return true;
             }

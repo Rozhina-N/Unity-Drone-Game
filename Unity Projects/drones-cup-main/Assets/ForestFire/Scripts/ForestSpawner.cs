@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 public class ForestSpawner : MonoBehaviour
@@ -67,7 +67,7 @@ public class ForestSpawner : MonoBehaviour
 
         for (int attempt = 0; attempt < maxAttempts && spawnedCount < treeCount; attempt++)
         {
-            Vector3 candidatePosition = GetRandomWorldPosition();
+            Vector3 candidatePosition = GetRandomPositionWithinBounds();
             Vector2 candidatePosition2D = new Vector2(candidatePosition.x, candidatePosition.z);
 
             if (IsInsideOpening(candidatePosition2D) || IsTooCloseToAnotherTree(candidatePosition2D))
@@ -158,7 +158,7 @@ public class ForestSpawner : MonoBehaviour
 
             for (int attempt = 0; attempt < OpeningPlacementAttemptsPerOpening; attempt++)
             {
-                Vector3 openingPosition = GetRandomWorldPosition(openingCenterBorderPadding, i == 0 && attempt == 0);
+                Vector3 openingPosition = GetRandomPositionWithinBounds(openingCenterBorderPadding, i == 0 && attempt == 0);
                 Vector2 openingCenter = new Vector2(openingPosition.x, openingPosition.z);
 
                 if (IsTooCloseToAnotherOpening(openingCenter, minimumOpeningCenterDistance))
@@ -182,12 +182,12 @@ public class ForestSpawner : MonoBehaviour
         }
     }
 
-    private Vector3 GetRandomWorldPosition()
+    private Vector3 GetRandomPositionWithinBounds()
     {
-        return GetRandomWorldPosition(0f, false);
+        return GetRandomPositionWithinBounds(0f, false);
     }
 
-    private Vector3 GetRandomWorldPosition(float borderPadding, bool warnIfClamped)
+    private Vector3 GetRandomPositionWithinBounds(float borderPadding, bool warnIfClamped)
     {
         Vector3 localCenter = spawnArea.center;
         Vector3 halfSize = spawnArea.size * 0.5f;
@@ -288,6 +288,7 @@ public class ForestSpawner : MonoBehaviour
         }
     }
 }
+
 
 
 

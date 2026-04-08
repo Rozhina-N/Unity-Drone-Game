@@ -16,9 +16,17 @@ public class MirrorBinding
 public class WSMirror : MonoBehaviour
 {
     public WSHost WShostObj;
+    private readonly HashSet<string> _warnedInvalidPhysicalBindings = new HashSet<string>();
 
     // Configure mirror targets: inbound key -> target GameObjects
     public List<MirrorBinding> DroneMirrors = new List<MirrorBinding>();
+
+    private bool IsLiveSceneObject(GameObject obj)
+    {
+        if (obj == null) return false;
+        var scene = obj.scene;
+        return scene.IsValid() && scene.isLoaded;
+    }
 
     void Update()
     {
@@ -30,14 +38,30 @@ public class WSMirror : MonoBehaviour
             if (mirror == null || mirror.PhysicalDrone == null)
                 continue;
 
-            // Determine inbound key to use; if empty, fall back to any bound drone
             string key = string.IsNullOrEmpty(mirror.InboundKey) ? WShostObj.GetAnyBoundDroneId() : mirror.InboundKey;
+            if (!IsLiveSceneObject(mirror.PhysicalDrone))
+            {
+                if (!string.IsNullOrEmpty(key) && _warnedInvalidPhysicalBindings.Add(key))
+                {
+                    Debug.LogWarning(
+                        $"WSMirror binding '{key}' points to '{mirror.PhysicalDrone.name}', which is not a live scene object."
+                    );
+                }
+                continue;
+            }
+
+            // Determine inbound key to use; if empty, fall back to any bound drone
             if (string.IsNullOrEmpty(key))
                 continue; // nothing bound yet
+
+            _warnedInvalidPhysicalBindings.Remove(key);
 
             // Ensure telemetry exists before applying
             if (!WShostObj.HasData(key))
                 continue;
+
+            if (!mirror.PhysicalDrone.activeSelf)
+                mirror.PhysicalDrone.SetActive(true);
 
             Vector3 pos = WShostObj.getPosition(key) * WShostObj.Factor;
             float yaw = WShostObj.getYaw(key);

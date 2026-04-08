@@ -4,7 +4,6 @@ using WebSocketSharp.Server;
 using System.Collections;
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using System;
 using System.Linq;
 using UnityEngine.InputSystem;
@@ -19,6 +18,7 @@ public class WebSocketServerBehavior : WebSocketBehavior
         Instance = this; // Set the instance when a connection is opened
         // Auto-bind this session to the first free drone if no id will be provided
         WSHost.Instance?.EnsureSessionAutoBound(ID);
+        WSHost.Instance?.FlushBufferedMessages();
     }
 
     protected override void OnMessage(MessageEventArgs e)
@@ -115,9 +115,14 @@ public class WSHost : MonoBehaviour
 
     // NEW: track last sent real-world positions to smooth / limit jumps
     private readonly Dictionary<string, Vector3> _lastSentRealPos = new Dictionary<string, Vector3>();
+    private readonly Queue<string> _pendingControlMessages = new Queue<string>();
+    private readonly Dictionary<string, string> _pendingMoveMessages = new Dictionary<string, string>();
+    private readonly HashSet<string> _warnedInvalidVirtualBindings = new HashSet<string>();
 
     // Configurable smoothing: max meters per update (0 = no limit)
     private const float MaxSendDeltaMeters = 0.5f;
+    private const int MaxBufferedControlMessages = 64;
+    private bool _warnedAboutMissingClient;
 
     private void Awake()
     {
@@ -134,14 +139,28 @@ public class WSHost : MonoBehaviour
 
     public void InitializeDroneBindings(string inboundKey)
     {
-        var droneBinding = DroneBindings.First(drone => drone.InboundKey == inboundKey);
-        if (droneBinding != null && !string.IsNullOrEmpty(droneBinding.InboundKey) && droneBinding.VirtualDrone != null)
+        var droneBinding = DroneBindings.FirstOrDefault(drone => drone.InboundKey == inboundKey);
+        if (droneBinding == null || string.IsNullOrEmpty(droneBinding.InboundKey) || droneBinding.VirtualDrone == null)
+            return;
+
+        if (!IsLiveSceneObject(droneBinding.VirtualDrone))
         {
-            _droneObjects[droneBinding.InboundKey] = droneBinding;
-            _moveTo[droneBinding.InboundKey] = false;
-            if (!_lastSentColor.ContainsKey(droneBinding.InboundKey)) _lastSentColor[droneBinding.InboundKey] = new Color(-1,-1,-1, -1); // sentinel
-            if (!_lastSentRealPos.ContainsKey(droneBinding.InboundKey)) _lastSentRealPos[droneBinding.InboundKey] = new Vector3(float.NaN, float.NaN, float.NaN);
+            if (_warnedInvalidVirtualBindings.Add(droneBinding.InboundKey))
+            {
+                Debug.LogWarning(
+                    $"WSHost binding '{droneBinding.InboundKey}' points to '{droneBinding.VirtualDrone.name}', " +
+                    "which is not a live scene object. Rebind it at runtime before sending move_to commands."
+                );
+            }
+            _droneObjects.Remove(droneBinding.InboundKey);
+            return;
         }
+
+        _warnedInvalidVirtualBindings.Remove(droneBinding.InboundKey);
+        _droneObjects[droneBinding.InboundKey] = droneBinding;
+        _moveTo[droneBinding.InboundKey] = false;
+        if (!_lastSentColor.ContainsKey(droneBinding.InboundKey)) _lastSentColor[droneBinding.InboundKey] = new Color(-1,-1,-1, -1); // sentinel
+        if (!_lastSentRealPos.ContainsKey(droneBinding.InboundKey)) _lastSentRealPos[droneBinding.InboundKey] = new Vector3(float.NaN, float.NaN, float.NaN);
     }
 
     // Try to resolve inbound key to an existing configured key (case/space insensitive match)
@@ -179,7 +198,7 @@ public class WSHost : MonoBehaviour
     private void OnApplicationQuit()
     {
         this.LandDrone();
-        wss.Stop();
+        wss?.Stop();
     }
 
     private void Update()
@@ -423,7 +442,7 @@ public class WSHost : MonoBehaviour
             Vector3 targetPosition = new Vector3(droneObj.transform.position.x, height * Factor, droneObj.transform.position.z);
             StartCoroutine(moveOverTime(droneObj, targetPosition, time));
         }
-        SendMessageToDrone(droneKey, message.ToString());
+        SendMessageToDrone(droneKey, message.ToString(), "takeoff");
         // enable moveTo for this specific drone after takeoff time
         StartCoroutine(CallAfter(time, () => ToggleMoveTo(droneKey, true)));
     }
@@ -555,7 +574,69 @@ public class WSHost : MonoBehaviour
         return 0f;
     }
 
-    private async void SendMessageToDrone(string droneKey, string message)
+    private bool IsLiveSceneObject(GameObject obj)
+    {
+        if (obj == null) return false;
+        var scene = obj.scene;
+        return scene.IsValid() && scene.isLoaded;
+    }
+
+    private void BufferMessage(string droneKey, string commandName, string message)
+    {
+        lock (_sync)
+        {
+            if (string.Equals(commandName, "move_to", StringComparison.OrdinalIgnoreCase))
+            {
+                _pendingMoveMessages[droneKey] = message;
+                return;
+            }
+
+            if (_pendingControlMessages.Count >= MaxBufferedControlMessages)
+                _pendingControlMessages.Dequeue();
+
+            _pendingControlMessages.Enqueue(message);
+        }
+    }
+
+    public void FlushBufferedMessages()
+    {
+        if (wss == null)
+            return;
+
+        List<string> bufferedMessages = new List<string>();
+        lock (_sync)
+        {
+            while (_pendingControlMessages.Count > 0)
+                bufferedMessages.Add(_pendingControlMessages.Dequeue());
+
+            foreach (var kvp in _pendingMoveMessages.OrderBy(entry => entry.Key))
+                bufferedMessages.Add(kvp.Value);
+
+            _pendingMoveMessages.Clear();
+            _warnedAboutMissingClient = false;
+        }
+
+        if (bufferedMessages.Count == 0)
+            return;
+
+        try
+        {
+            var mgr = wss.WebSocketServices["/drone"].Sessions;
+            if (mgr.Count == 0)
+                return;
+
+            foreach (var bufferedMessage in bufferedMessages)
+                mgr.Broadcast(bufferedMessage);
+
+            Debug.Log($"Flushed {bufferedMessages.Count} buffered drone command(s) after websocket client connection.");
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning($"Failed to flush buffered drone commands: {ex.Message}");
+        }
+    }
+
+    private void SendMessageToDrone(string droneKey, string message, string commandName = null)
     {
         if (wss == null)
         {
@@ -567,15 +648,20 @@ public class WSHost : MonoBehaviour
         // Always broadcast - the message contains the drone id so Python routes it correctly.
         try
         {
-            await Task.Run(() =>
+            var mgr = wss.WebSocketServices["/drone"].Sessions;
+            if (mgr.Count == 0)
             {
-                var mgr = wss.WebSocketServices["/drone"].Sessions;
-                if (mgr.Count > 0)
+                BufferMessage(droneKey, commandName, message);
+                if (!_warnedAboutMissingClient)
                 {
-                    mgr.Broadcast(message);
-                    Debug.Log("Test"+message);
+                    Debug.LogWarning("No websocket client connected yet. Buffering drone commands until the client connects.");
+                    _warnedAboutMissingClient = true;
                 }
-            });
+                return;
+            }
+
+            _warnedAboutMissingClient = false;
+            mgr.Broadcast(message);
         }
         catch (Exception ex)
         {
@@ -583,15 +669,13 @@ public class WSHost : MonoBehaviour
         }
     }
 
-    private async void SendMessageToAll(string message)
+    private void SendMessageToAll(string message)
     {
         if (wss != null)
         {
-            await Task.Run(() =>
-            {
-                var mgr = wss.WebSocketServices["/drone"].Sessions;
+            var mgr = wss.WebSocketServices["/drone"].Sessions;
+            if (mgr.Count > 0)
                 mgr.Broadcast(message);
-            });
         }
     }
 
@@ -603,7 +687,7 @@ public class WSHost : MonoBehaviour
             ["id"] = droneKey,
             ["command"] = command
         };
-        SendMessageToDrone(droneKey, message.ToString());
+        SendMessageToDrone(droneKey, message.ToString(), command);
     }
 
     public void sendCommand(string command)
@@ -670,9 +754,24 @@ public class WSHost : MonoBehaviour
                 if (doMoveTo)
                 // if (true)
                 {
+                    if (droneObj == null)
+                        continue;
+
+                    if (!IsLiveSceneObject(droneObj))
+                    {
+                        if (_warnedInvalidVirtualBindings.Add(droneKey))
+                        {
+                            Debug.LogWarning(
+                                $"Skipping move_to for '{droneKey}' because '{droneObj.name}' is not a live scene object."
+                            );
+                        }
+                        continue;
+                    }
+
+                    _warnedInvalidVirtualBindings.Remove(droneKey);
+
                     // Always use the configured FixedHeight for altitude (z)
                     float targetX = droneObj.transform.position.x / Factor;
-                    float targetY = droneObj.transform.position.y / Factor;
                     float targetZ = droneObj.transform.position.z / Factor; 
 
                     JObject message = new JObject
@@ -684,7 +783,7 @@ public class WSHost : MonoBehaviour
                         ["z"] = height,
                         ["yaw"] = droneObj.transform.rotation.eulerAngles.y
                     };
-                    SendMessageToDrone(droneKey, message.ToString());
+                    SendMessageToDrone(droneKey, message.ToString(), "move_to");
                     Debug.Log("positionCoroutine");
                 }
             }
@@ -710,7 +809,7 @@ public class WSHost : MonoBehaviour
             ["bluePlayer"] = b
         };
         Debug.Log($"sending command: set_ring to {droneKey} effect=19 rgb=({r},{g},{b})");
-        SendMessageToDrone(droneKey, message.ToString());
+        SendMessageToDrone(droneKey, message.ToString(), "set_ring");
     }
 
     private bool ApproximatelySame(Color a, Color b)

@@ -28,6 +28,54 @@ public class WSMirror : MonoBehaviour
         return scene.IsValid() && scene.isLoaded;
     }
 
+    private bool IsMirrorAvailable(MirrorBinding mirror)
+    {
+        return mirror != null && (mirror.VirtualDrone == null || !mirror.VirtualDrone.activeInHierarchy);
+    }
+
+    public bool TryBindPlayerToAvailableDrone(
+        GameObject player,
+        bool takeOffIfNewlyBound = true,
+        bool animateVirtualDroneOnTakeoff = false,
+        float takeoffDuration = 2f)
+    {
+        if (player == null || WShostObj == null || DroneMirrors == null)
+            return false;
+
+        MirrorBinding mirror = DroneMirrors.Find(binding => binding != null && binding.VirtualDrone == player);
+        bool newlyBound = false;
+
+        if (mirror == null)
+        {
+            mirror = DroneMirrors.Find(IsMirrorAvailable);
+            if (mirror == null)
+                return false;
+
+            mirror.VirtualDrone = player;
+            newlyBound = true;
+        }
+
+        DroneBinding hostBinding = WShostObj.DroneBindings.Find(binding => binding != null && binding.InboundKey == mirror.InboundKey);
+        if (hostBinding == null)
+        {
+            if (newlyBound)
+                mirror.VirtualDrone = null;
+
+            Debug.LogError($"No matching DroneBinding found for InboundKey: {mirror.InboundKey}");
+            return false;
+        }
+
+        hostBinding.VirtualDrone = player;
+        if (newlyBound)
+            WShostObj.InitializeDroneBindings(hostBinding.InboundKey);
+        WShostObj.BindPlayerToDrone(hostBinding.InboundKey, player);
+
+        if (newlyBound && takeOffIfNewlyBound)
+            WShostObj.TakeOffDrone(hostBinding.InboundKey, takeoffDuration, animateVirtualDroneOnTakeoff);
+
+        return true;
+    }
+
     void Update()
     {
         if (WShostObj == null || DroneMirrors == null)

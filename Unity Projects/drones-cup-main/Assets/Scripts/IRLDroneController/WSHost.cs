@@ -418,11 +418,11 @@ public class WSHost : MonoBehaviour
     {
         foreach (var kvp in _droneObjects)
         {
-            TakeOffDrone(kvp.Key, time);
+            TakeOffDrone(kvp.Key, time, true);
         }
     }
 
-    public void TakeOffDrone(string droneKey, float time = 2)
+    public void TakeOffDrone(string droneKey, float time = 2, bool animateVirtualDrone = true)
     {
         if (!_droneObjects.ContainsKey(droneKey)) return;
         var height = _droneObjects[droneKey].FixedHeight;
@@ -437,7 +437,7 @@ public class WSHost : MonoBehaviour
         };
         var droneObj = _droneObjects[droneKey].VirtualDrone;
         // ensure the visual move uses Unity Y as up (convert real meters -> Unity units via Factor)
-        if (droneObj != null)
+        if (animateVirtualDrone && droneObj != null)
         {
             Vector3 targetPosition = new Vector3(droneObj.transform.position.x, height * Factor, droneObj.transform.position.z);
             StartCoroutine(moveOverTime(droneObj, targetPosition, time));

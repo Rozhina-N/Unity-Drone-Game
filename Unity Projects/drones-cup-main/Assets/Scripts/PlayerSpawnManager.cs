@@ -9,6 +9,11 @@ public class PlayerSpawnManager : MonoBehaviour
     [Header("Settings")]
     [SerializeField] private GameObject playerPrefab;
     [SerializeField] private Transform[] spawnPoints;
+    
+    [Header("Drone Follow")]
+    [SerializeField] private bool autoBindDroneOnSpawn = true;
+    [SerializeField] private bool autoTakeoffBoundDrone = true;
+    [SerializeField] private float autoTakeoffDuration = 2f;
 
     private int maxPlayers = 8;
     
@@ -22,6 +27,7 @@ public class PlayerSpawnManager : MonoBehaviour
     private readonly HashSet<GameObject> activePlayers = new HashSet<GameObject>();
     
     private Dictionary<GameObject, Color> playerColorMap = new Dictionary<GameObject, Color>();
+    private WSMirror wsMirror;
    
     private int nextSpawnIndex;
     
@@ -29,6 +35,7 @@ public class PlayerSpawnManager : MonoBehaviour
     {
         Instance = this;
         InitializePool();
+        wsMirror = FindObjectOfType<WSMirror>();
     }
 
     private void InitializePool()
@@ -71,6 +78,7 @@ public class PlayerSpawnManager : MonoBehaviour
         player.GetComponent<PlayerSetup>().InitializePlayer(assignedColor, controlScheme, device);
 
         activePlayers.Add(player);
+        AutoBindDrone(player);
     }
     
     public void ReturnPlayer(GameObject player)
@@ -86,5 +94,30 @@ public class PlayerSpawnManager : MonoBehaviour
         
         activePlayers.Remove(player);
         inactivePool.Enqueue(player);
+    }
+
+    private void AutoBindDrone(GameObject player)
+    {
+        if (!autoBindDroneOnSpawn || player == null)
+            return;
+
+        if (wsMirror == null)
+            wsMirror = FindObjectOfType<WSMirror>();
+
+        if (wsMirror == null)
+        {
+            Debug.LogWarning($"No WSMirror found, cannot auto-bind drone for {player.name}.");
+            return;
+        }
+
+        bool bound = wsMirror.TryBindPlayerToAvailableDrone(
+            player,
+            autoTakeoffBoundDrone,
+            false,
+            autoTakeoffDuration
+        );
+
+        if (!bound)
+            Debug.LogWarning($"No free drone binding available for spawned player: {player.name}");
     }
 }

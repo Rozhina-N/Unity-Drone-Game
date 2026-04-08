@@ -71,34 +71,19 @@ public class DroneLandpad : MonoBehaviour
 
     private void EnterDrone()
     {
-        var emptyDrone = wsMirror.DroneMirrors.FirstOrDefault(drone => drone.VirtualDrone == null);
-        
-        // No empty drone found
-        if (emptyDrone == null)
+        player.GetComponent<ShootLogic>().isFlying = true;
+        ToggleVisibility(false);
+
+        if (!wsMirror.TryBindPlayerToAvailableDrone(player, true, true))
         {
+            player.GetComponent<ShootLogic>().isFlying = false;
+            ToggleVisibility(true);
             Debug.LogWarning($"No empty drone available for player: {player.name}");
             return;
         }
 
-        Debug.Log($"Found empty drone with InboundKey: {emptyDrone.InboundKey} for player: {player.name}");
-
-        player.GetComponent<ShootLogic>().isFlying = true;
-        ToggleVisibility(false);
-        
-        emptyDrone.VirtualDrone = player;
-        var mirrorDrone = WsHost.DroneBindings.FirstOrDefault(drone => drone.InboundKey == emptyDrone.InboundKey);
-        
-        if (mirrorDrone == null)
-        {
-            Debug.LogError($"No matching DroneBinding found for InboundKey: {emptyDrone.InboundKey}");
-            return;
-        }
-        
-        mirrorDrone.VirtualDrone = player;
-        
-        WsHost.InitializeDroneBindings(mirrorDrone.InboundKey);
-        WsHost.BindPlayerToDrone(mirrorDrone.InboundKey, player);
-        WsHost.TakeOffDrone(mirrorDrone.InboundKey);
-        Debug.Log($"Drone {mirrorDrone.InboundKey} entered for player: {player.name}");
+        var boundDrone = WsHost.DroneBindings.FirstOrDefault(drone => drone != null && drone.VirtualDrone == player);
+        if (boundDrone != null)
+            Debug.Log($"Drone {boundDrone.InboundKey} entered for player: {player.name}");
     }
 }

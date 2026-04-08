@@ -5,6 +5,8 @@ Extracted from DroneController as part of god-class refactoring (Phase 2).
 """
 
 import logging
+import math
+import time
 from threading import Lock
 from typing import Optional, Any, Type, Dict, Union, List, Callable
 
@@ -53,6 +55,8 @@ class TelemetryHandler:
         
         # Active log configurations
         self._logconfs: List[Any] = []
+        self._last_raw_position_log_ts = 0.0
+        self._logged_first_position_sample = False
         
         # Optional callback for telemetry updates
         self.on_telemetry_update: Optional[Callable[[], None]] = None
@@ -92,12 +96,58 @@ class TelemetryHandler:
         
         def _pos_cb(ts: Any, data: Dict[str, Any], logconf: Any) -> None:
             """Callback for position data updates."""
+            raw_x = float(data.get('stateEstimate.x', self.telemetry["x"]))
+            raw_y = float(data.get('stateEstimate.y', self.telemetry["y"]))
+            raw_z = float(data.get('stateEstimate.z', self.telemetry["z"]))
+            raw_yaw = float(data.get('stabilizer.yaw', self.telemetry["yaw"]))
+
             with self._lock:
-                self.telemetry["x"] = float(data.get('stateEstimate.x', self.telemetry["x"]))
-                self.telemetry["y"] = float(data.get('stateEstimate.y', self.telemetry["y"]))
-                self.telemetry["z"] = float(data.get('stateEstimate.z', self.telemetry["z"]))
-                self.telemetry["yaw"] = float(data.get('stabilizer.yaw', self.telemetry["yaw"]))
-            
+                self.telemetry["x"] = raw_x
+                self.telemetry["y"] = raw_y
+                self.telemetry["z"] = raw_z
+                self.telemetry["yaw"] = raw_yaw
+
+            now = time.monotonic()
+            suspicious = (
+                not all(math.isfinite(v) for v in (raw_x, raw_y, raw_z, raw_yaw))
+                or abs(raw_x) > 10.0
+                or abs(raw_y) > 10.0
+                or raw_z < -1.0
+                or raw_z > 5.0
+            )
+
+            if not self._logged_first_position_sample:
+                self.logger.info(
+                    "Raw position sample for %s: x=%.3f y=%.3f z=%.3f yaw=%.3f",
+                    self.drone_id,
+                    raw_x,
+                    raw_y,
+                    raw_z,
+                    raw_yaw,
+                )
+                self._logged_first_position_sample = True
+                self._last_raw_position_log_ts = now
+            elif suspicious:
+                self.logger.warning(
+                    "Suspicious raw position sample for %s: x=%.3f y=%.3f z=%.3f yaw=%.3f",
+                    self.drone_id,
+                    raw_x,
+                    raw_y,
+                    raw_z,
+                    raw_yaw,
+                )
+                self._last_raw_position_log_ts = now
+            elif self.logger.isEnabledFor(logging.DEBUG) and (now - self._last_raw_position_log_ts) >= 2.0:
+                self.logger.debug(
+                    "Raw position sample for %s: x=%.3f y=%.3f z=%.3f yaw=%.3f",
+                    self.drone_id,
+                    raw_x,
+                    raw_y,
+                    raw_z,
+                    raw_yaw,
+                )
+                self._last_raw_position_log_ts = now
+             
             # Notify listeners
             if self.on_telemetry_update is not None:
                 try:

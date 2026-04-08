@@ -54,7 +54,7 @@ public class WSMirror : MonoBehaviour
             {
                 mirror.PhysicalDrone.transform.position = pos;
             }
-
+            Debug.Log("SENDING DATA");
             mirror.PhysicalDrone.transform.rotation = Quaternion.Euler(0f, yaw,0f);
         }
     }

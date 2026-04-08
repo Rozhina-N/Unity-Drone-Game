@@ -168,6 +168,7 @@ public class WSHost : MonoBehaviour
     {
         wss = new WebSocketServer($"ws://0.0.0.0:{WebSocketPort}");
         wss.AddWebSocketService<WebSocketServerBehavior>("/drone");
+        Debug.Log(WebSocketPort);
         wss.Start();
         Debug.Log("WebSocket server started on ws://localhost:" + WebSocketPort);
 
@@ -178,6 +179,7 @@ public class WSHost : MonoBehaviour
     private void OnApplicationQuit()
     {
         this.LandDrone();
+        wss.Stop();
     }
 
     private void Update()
@@ -278,6 +280,7 @@ public class WSHost : MonoBehaviour
         {
             bool first = !_latestData.ContainsKey(droneKey);
             _latestData[droneKey] = data;
+            Debug.Log("updateDroneData " + first);
             if (first)
             {
                 Debug.Log($"Ontvangen eerste data voor drone {droneKey}: {data}");
@@ -570,6 +573,7 @@ public class WSHost : MonoBehaviour
                 if (mgr.Count > 0)
                 {
                     mgr.Broadcast(message);
+                    Debug.Log("Test"+message);
                 }
             });
         }
@@ -650,16 +654,21 @@ public class WSHost : MonoBehaviour
 
     IEnumerator sendPositionCoroutine()
     {
+        Debug.Log(_droneObjects.Count);
         while (true)
         {
             foreach (var kvp in _droneObjects)
             {
+
                 var droneKey = kvp.Key;
                 var droneObj = kvp.Value.VirtualDrone;
                 var height = kvp.Value.FixedHeight;
+                // Debug.Log(_moveTo.Count);
                 bool doMoveTo = _moveTo.ContainsKey(droneKey) && _moveTo[droneKey];
 
+                // Debug.Log(doMoveTo + " hello");
                 if (doMoveTo)
+                // if (true)
                 {
                     // Always use the configured FixedHeight for altitude (z)
                     float targetX = droneObj.transform.position.x / Factor;
@@ -676,6 +685,7 @@ public class WSHost : MonoBehaviour
                         ["yaw"] = droneObj.transform.rotation.eulerAngles.y
                     };
                     SendMessageToDrone(droneKey, message.ToString());
+                    Debug.Log("positionCoroutine");
                 }
             }
             yield return new WaitForSeconds(0.1f);

@@ -164,8 +164,8 @@ public class RescueTarget : MonoBehaviour
 
     private float EvaluateDangerPressure()
     {
-        int nearbyBurningTreeCount = CountNearbyBurningTrees();
-        if (nearbyBurningTreeCount < minimumNearbyFireCount)
+        int nearbyThreatTreeCount = CountNearbyThreatTrees();
+        if (nearbyThreatTreeCount < minimumNearbyFireCount)
         {
             return 0f;
         }
@@ -176,12 +176,12 @@ public class RescueTarget : MonoBehaviour
             return 1f;
         }
 
-        return Mathf.InverseLerp(minimumNearbyFireCount, effectiveMaxFireCount, nearbyBurningTreeCount);
+        return Mathf.InverseLerp(minimumNearbyFireCount, effectiveMaxFireCount, nearbyThreatTreeCount);
     }
 
-    private int CountNearbyBurningTrees()
+    private int CountNearbyThreatTrees()
     {
-        int burningTreeCount = 0;
+        int threatTreeCount = 0;
         float threatRadiusSquared = threatRadius * threatRadius;
         Vector2 targetFlatPosition = ToFlatPosition(transform.position);
         var allTrees = FlammableTree.RegisteredTrees;
@@ -189,7 +189,7 @@ public class RescueTarget : MonoBehaviour
         for (int i = 0; i < allTrees.Count; i++)
         {
             FlammableTree tree = allTrees[i];
-            if (tree == null || !tree.IsBurning)
+            if (tree == null || (!tree.IsBurning && !tree.IsBurnt))
             {
                 continue;
             }
@@ -200,10 +200,10 @@ public class RescueTarget : MonoBehaviour
                 continue;
             }
 
-            burningTreeCount++;
+            threatTreeCount++;
         }
 
-        return burningTreeCount;
+        return threatTreeCount;
     }
 
     private void CacheScaleIfNeeded()

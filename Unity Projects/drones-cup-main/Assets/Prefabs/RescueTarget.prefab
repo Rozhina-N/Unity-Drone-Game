@@ -132,16 +132,16 @@ MonoBehaviour:
   rescueDuration: 2
   shrinkSpeed: 1
   rescueTintColor: {r: 0.4, g: 1, b: 0.4, a: 1}
-  minimumSizeBeforeRescued: 0.05
-  threatRadius: 20
+  minimumSizeBeforeRescued: 0.1
+  threatRadius: 18
   minimumNearbyFireCount: 1
-  maxFireCountInfluence: 5
+  maxFireCountInfluence: 3
   dangerTintColor: {r: 1, g: 0, b: 0, a: 1}
   redTintStrength: 0.85
   pulseReductionAmount: 1
   dangerShrinkSpeed: 0.2
   minimumSizeAtMaxThreat: 0
-  deathSizeThreshold: 0.05
+  deathSizeThreshold: 0.2
 --- !u!114 &3167522388983513867
 MonoBehaviour:
   m_ObjectHideFlags: 0

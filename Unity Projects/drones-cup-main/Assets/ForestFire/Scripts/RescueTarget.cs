@@ -9,6 +9,9 @@ public class RescueTarget : MonoBehaviour
     [SerializeField] private Renderer targetRenderer;
     [SerializeField] private PulseMotion pulseMotion;
 
+    [Header("Visuals")]
+    [SerializeField] private Color neutralTintColor = Color.black;
+
     [Header("Rescue")]
     [SerializeField] [Min(0.01f)] private float rescueDuration = 2f;
     [SerializeField] [Min(0f)] private float shrinkSpeed = 1f;
@@ -25,7 +28,6 @@ public class RescueTarget : MonoBehaviour
     private bool scaleCached;
     private MaterialPropertyBlock targetPropertyBlock;
     private string targetColorPropertyName;
-    private Color normalColor = Color.white;
     private float rescueProgress;
     private float sizeMultiplier = 1f;
     private bool isBeingRescued;
@@ -38,7 +40,7 @@ public class RescueTarget : MonoBehaviour
         CachePulseIfNeeded();
         CacheColorState();
         ApplyCurrentSize();
-        ApplyTargetColor(normalColor);
+        ApplyTargetColor(neutralTintColor);
     }
 
     private void Reset()
@@ -102,7 +104,10 @@ public class RescueTarget : MonoBehaviour
         }
 
         isBeingRescued = false;
-        ApplyTargetColor(normalColor);
+        rescueProgress = 0f;
+        sizeMultiplier = 1f;
+        ApplyCurrentSize();
+        ApplyTargetColor(neutralTintColor);
     }
 
     private void CacheScaleIfNeeded()
@@ -150,7 +155,6 @@ public class RescueTarget : MonoBehaviour
 
         if (targetRenderer is SpriteRenderer spriteRenderer)
         {
-            normalColor = spriteRenderer.color;
             targetColorPropertyName = string.Empty;
             return;
         }
@@ -164,14 +168,12 @@ public class RescueTarget : MonoBehaviour
         if (sharedMaterial.HasProperty(BaseColorProperty))
         {
             targetColorPropertyName = BaseColorProperty;
-            normalColor = sharedMaterial.GetColor(BaseColorProperty);
             return;
         }
 
         if (sharedMaterial.HasProperty(ColorProperty))
         {
             targetColorPropertyName = ColorProperty;
-            normalColor = sharedMaterial.GetColor(ColorProperty);
         }
     }
 

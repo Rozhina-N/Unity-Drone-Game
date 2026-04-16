@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 2264234886183322456}
   - component: {fileID: 8017323344336149239}
   - component: {fileID: 6513729949547477303}
+  - component: {fileID: 3167522388983513867}
   m_Layer: 0
   m_Name: RescueTarget
   m_TagString: Untagged
@@ -126,3 +127,21 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RescueTarget
   targetRenderer: {fileID: 2264234886183322456}
+  pulseMotion: {fileID: 0}
+--- !u!114 &3167522388983513867
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8936962209313991464}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4af30693787483c41a5e3fe1a3cd821b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PulseMotion
+  pulseSpeed: 3
+  pulseAmount: 0.15
+  baseScaleMultiplier: 1
+  rotateOverTime: 0
+  rotationSpeed: 25

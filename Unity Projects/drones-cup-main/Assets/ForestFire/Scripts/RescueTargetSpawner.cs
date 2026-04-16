@@ -4,6 +4,7 @@ using UnityEngine;
 public class RescueTargetSpawner : MonoBehaviour
 {
     private const string DefaultSpawnParentName = "Spawned Rescue Targets";
+    public Transform SpawnedTargetRoot => spawnedTargetParent != null ? spawnedTargetParent : transform.Find(DefaultSpawnParentName);
 
     [Header("References")]
     [SerializeField] private ForestSpawner forestSpawner;

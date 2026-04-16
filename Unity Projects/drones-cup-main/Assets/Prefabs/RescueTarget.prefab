@@ -69,7 +69,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 7c5aa15103843fe45b3198ba1d384b31, type: 2}
+  - {fileID: 2100000, guid: 62731fc41ab3df04898d7b45b98551f7, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -128,6 +128,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RescueTarget
   targetRenderer: {fileID: 2264234886183322456}
   pulseMotion: {fileID: 0}
+  rescueDuration: 2
+  shrinkSpeed: 1
+  rescueTintColor: {r: 0.4, g: 1, b: 0.4, a: 1}
+  minimumSizeBeforeRescued: 0.02
 --- !u!114 &3167522388983513867
 MonoBehaviour:
   m_ObjectHideFlags: 0

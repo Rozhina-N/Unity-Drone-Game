@@ -8,47 +8,61 @@ public class FirefighterInteraction : MonoBehaviour
     [Header("Optional References")]
     [SerializeField] private ForestSpawner forestSpawner;
     [SerializeField] private Transform treeSearchRoot;
+    [SerializeField] private RescueTargetSpawner rescueTargetSpawner;
+    [SerializeField] private Transform rescueTargetSearchRoot;
 
     [Header("Extinguish Cylinder")]
     [SerializeField] [Min(0f)] private float cylinderRadius = 4f;
     [SerializeField] [Min(0f)] private float minimumHeightAboveFire = 0.5f;
     [SerializeField] [Min(0f)] private float maximumHeightAboveFire = 5f;
 
+    [Header("Rescue Cylinder")]
+    [SerializeField] [Min(0f)] private float rescueRange = 4f;
+    [SerializeField] [Min(0f)] private float minimumHeightAboveTarget = 0.5f;
+    [SerializeField] [Min(0f)] private float maximumHeightAboveTarget = 5f;
+
     private readonly HashSet<FlammableTree> activeTargets = new HashSet<FlammableTree>();
     private readonly HashSet<FlammableTree> frameTargets = new HashSet<FlammableTree>();
     private readonly List<FlammableTree> stopBuffer = new List<FlammableTree>();
-    private bool isExtinguishHeld;
+    private readonly HashSet<RescueTarget> activeRescueTargets = new HashSet<RescueTarget>();
+    private readonly HashSet<RescueTarget> frameRescueTargets = new HashSet<RescueTarget>();
+    private readonly List<RescueTarget> stopRescueBuffer = new List<RescueTarget>();
+    private bool isInteractHeld;
 
     public void Extinguish(InputAction.CallbackContext context)
     {
         if (context.started || context.performed)
         {
-            isExtinguishHeld = true;
+            isInteractHeld = true;
             return;
         }
 
         if (context.canceled)
         {
-            isExtinguishHeld = false;
+            isInteractHeld = false;
             ClearActiveTargets();
+            ClearActiveRescueTargets();
         }
     }
 
     private void Update()
     {
-        if (!isExtinguishHeld)
+        if (!isInteractHeld)
         {
             ClearActiveTargets();
+            ClearActiveRescueTargets();
             return;
         }
 
         UpdateExtinguishTargets();
+        UpdateRescueTargets();
     }
 
     private void OnDisable()
     {
-        isExtinguishHeld = false;
+        isInteractHeld = false;
         ClearActiveTargets();
+        ClearActiveRescueTargets();
     }
 
     private void UpdateExtinguishTargets()
@@ -106,6 +120,61 @@ public class FirefighterInteraction : MonoBehaviour
         activeTargets.UnionWith(frameTargets);
     }
 
+    private void UpdateRescueTargets()
+    {
+        frameRescueTargets.Clear();
+        RescueTarget[] allTargets = GetAllRescueTargets();
+        Vector2 playerFlatPosition = ToFlatPosition(transform.position);
+        float playerHeight = transform.position.y;
+
+        for (int i = 0; i < allTargets.Length; i++)
+        {
+            RescueTarget target = allTargets[i];
+            if (target == null || !target.CanBeRescued)
+            {
+                continue;
+            }
+
+            Vector3 targetPosition = target.RescueWorldPosition;
+            float heightAboveTarget = playerHeight - targetPosition.y;
+            if (heightAboveTarget < minimumHeightAboveTarget || heightAboveTarget > maximumHeightAboveTarget)
+            {
+                continue;
+            }
+
+            float horizontalDistance = Vector2.Distance(playerFlatPosition, ToFlatPosition(targetPosition));
+            if (horizontalDistance > rescueRange)
+            {
+                continue;
+            }
+
+            frameRescueTargets.Add(target);
+            target.BeginRescue();
+        }
+
+        stopRescueBuffer.Clear();
+
+        foreach (RescueTarget target in activeRescueTargets)
+        {
+            if (target == null || !frameRescueTargets.Contains(target))
+            {
+                stopRescueBuffer.Add(target);
+            }
+        }
+
+        for (int i = 0; i < stopRescueBuffer.Count; i++)
+        {
+            RescueTarget target = stopRescueBuffer[i];
+            if (target != null)
+            {
+                target.StopRescue();
+            }
+        }
+
+        activeRescueTargets.Clear();
+        activeRescueTargets.UnionWith(frameRescueTargets);
+    }
+
     private void ClearActiveTargets()
     {
         foreach (FlammableTree tree in activeTargets)
@@ -121,6 +190,21 @@ public class FirefighterInteraction : MonoBehaviour
         stopBuffer.Clear();
     }
 
+    private void ClearActiveRescueTargets()
+    {
+        foreach (RescueTarget target in activeRescueTargets)
+        {
+            if (target != null)
+            {
+                target.StopRescue();
+            }
+        }
+
+        activeRescueTargets.Clear();
+        frameRescueTargets.Clear();
+        stopRescueBuffer.Clear();
+    }
+
     private FlammableTree[] GetAllTrees()
     {
         Transform searchRoot = ResolveSearchRoot();
@@ -130,6 +214,17 @@ public class FirefighterInteraction : MonoBehaviour
         }
 
         return FindObjectsByType<FlammableTree>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+    }
+
+    private RescueTarget[] GetAllRescueTargets()
+    {
+        Transform searchRoot = ResolveRescueSearchRoot();
+        if (searchRoot != null)
+        {
+            return searchRoot.GetComponentsInChildren<RescueTarget>(true);
+        }
+
+        return FindObjectsByType<RescueTarget>(FindObjectsInactive.Include, FindObjectsSortMode.None);
     }
 
     private Transform ResolveSearchRoot()
@@ -161,6 +256,35 @@ public class FirefighterInteraction : MonoBehaviour
         return null;
     }
 
+    private Transform ResolveRescueSearchRoot()
+    {
+        if (rescueTargetSearchRoot != null)
+        {
+            return rescueTargetSearchRoot;
+        }
+
+        if (rescueTargetSpawner == null)
+        {
+            RescueTargetSpawner[] spawners = FindObjectsByType<RescueTargetSpawner>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            if (spawners.Length > 0)
+            {
+                rescueTargetSpawner = spawners[0];
+            }
+        }
+
+        if (rescueTargetSpawner != null)
+        {
+            if (rescueTargetSpawner.SpawnedTargetRoot != null)
+            {
+                return rescueTargetSpawner.SpawnedTargetRoot;
+            }
+
+            return rescueTargetSpawner.transform;
+        }
+
+        return null;
+    }
+
     private static Vector2 ToFlatPosition(Vector3 worldPosition)
     {
         return new Vector2(worldPosition.x, worldPosition.z);
@@ -171,6 +295,11 @@ public class FirefighterInteraction : MonoBehaviour
         if (maximumHeightAboveFire < minimumHeightAboveFire)
         {
             maximumHeightAboveFire = minimumHeightAboveFire;
+        }
+
+        if (maximumHeightAboveTarget < minimumHeightAboveTarget)
+        {
+            maximumHeightAboveTarget = minimumHeightAboveTarget;
         }
     }
 }

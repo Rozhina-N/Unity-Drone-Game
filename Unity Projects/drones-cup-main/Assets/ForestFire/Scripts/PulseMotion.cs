@@ -16,6 +16,7 @@ public class PulseMotion : MonoBehaviour
     private Quaternion baseLocalRotation;
     private float animationTime;
     private float pulseStrength = 1f;
+    private float pulseSpeedMultiplier = 1f;
     private bool baseTransformCached;
 
     public Vector3 CurrentRestLocalScale => baseLocalScale * baseScaleMultiplier;
@@ -61,6 +62,12 @@ public class PulseMotion : MonoBehaviour
         ApplyMotion();
     }
 
+    public void SetPulseSpeedMultiplier(float multiplier)
+    {
+        pulseSpeedMultiplier = Mathf.Max(0f, multiplier);
+        ApplyMotion();
+    }
+
     public void SetBaseScaleMultiplier(float multiplier)
     {
         baseScaleMultiplier = Mathf.Max(0f, multiplier);
@@ -76,6 +83,7 @@ public class PulseMotion : MonoBehaviour
 
         animationTime = 0f;
         pulseStrength = 1f;
+        pulseSpeedMultiplier = 1f;
         ApplyMotion();
     }
 
@@ -86,7 +94,7 @@ public class PulseMotion : MonoBehaviour
             CacheBaseTransform();
         }
 
-        float pulseOffset = Mathf.Sin(animationTime * pulseSpeed) * (pulseAmount * pulseStrength);
+        float pulseOffset = Mathf.Sin(animationTime * pulseSpeed * pulseSpeedMultiplier) * (pulseAmount * pulseStrength);
         float scaleMultiplier = baseScaleMultiplier * (1f + pulseOffset);
         transform.localScale = baseLocalScale * scaleMultiplier;
 

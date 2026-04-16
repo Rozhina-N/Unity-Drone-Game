@@ -18,11 +18,22 @@ public class RescueTarget : MonoBehaviour
     [SerializeField] private Color rescueTintColor = new Color(0.4f, 1f, 0.4f, 1f);
     [SerializeField] [Min(0f)] private float minimumSizeBeforeRescued = 0.02f;
 
+    [Header("Fire Threat")]
+    [SerializeField] [Min(0f)] private float threatRadius = 6f;
+    [SerializeField] [Min(0)] private int minimumNearbyFireCount = 2;
+    [SerializeField] [Min(1)] private int maxFireCountInfluence = 5;
+    [SerializeField] private Color dangerTintColor = Color.red;
+    [SerializeField] [Range(0f, 1f)] private float redTintStrength = 0.85f;
+    [SerializeField] [Range(0f, 1f)] private float pulseReductionAmount = 1f;
+    [SerializeField] [Min(0f)] private float dangerShrinkSpeed = 0.2f;
+    [SerializeField] [Range(0f, 1f)] private float minimumSizeAtMaxThreat = 0f;
+    [SerializeField] [Min(0f)] private float deathSizeThreshold = 0.02f;
+
     public Renderer TargetRenderer => targetRenderer;
     public PulseMotion PulseMotion => pulseMotion;
     public Vector3 SpawnedBaseLocalScale { get; private set; }
     public Vector3 RescueWorldPosition => transform.position;
-    public bool CanBeRescued => !hasBeenRescued;
+    public bool CanBeRescued => !hasBeenRemoved;
 
     private Vector3 prefabLocalScale;
     private bool scaleCached;
@@ -30,8 +41,9 @@ public class RescueTarget : MonoBehaviour
     private string targetColorPropertyName;
     private float rescueProgress;
     private float sizeMultiplier = 1f;
+    private float currentDangerPressure;
     private bool isBeingRescued;
-    private bool hasBeenRescued;
+    private bool hasBeenRemoved;
 
     private void Awake()
     {
@@ -40,6 +52,7 @@ public class RescueTarget : MonoBehaviour
         CachePulseIfNeeded();
         CacheColorState();
         ApplyCurrentSize();
+        ApplyPulseSettings(1f);
         ApplyTargetColor(neutralTintColor);
     }
 
@@ -69,25 +82,25 @@ public class RescueTarget : MonoBehaviour
 
     private void Update()
     {
-        if (!isBeingRescued || hasBeenRescued)
+        if (hasBeenRemoved)
         {
             return;
         }
 
-        rescueProgress += Time.deltaTime / rescueDuration;
-        sizeMultiplier = Mathf.Clamp01(1f - (rescueProgress * shrinkSpeed));
-        ApplyCurrentSize();
-        ApplyTargetColor(rescueTintColor);
+        currentDangerPressure = EvaluateDangerPressure();
 
-        if (sizeMultiplier <= minimumSizeBeforeRescued)
+        if (isBeingRescued)
         {
-            CompleteRescue();
+            UpdateRescue();
+            return;
         }
+
+        UpdateThreatEffects();
     }
 
     public void BeginRescue()
     {
-        if (hasBeenRescued)
+        if (hasBeenRemoved)
         {
             return;
         }
@@ -98,7 +111,7 @@ public class RescueTarget : MonoBehaviour
 
     public void StopRescue()
     {
-        if (hasBeenRescued)
+        if (hasBeenRemoved)
         {
             return;
         }
@@ -107,7 +120,90 @@ public class RescueTarget : MonoBehaviour
         rescueProgress = 0f;
         sizeMultiplier = 1f;
         ApplyCurrentSize();
+        ApplyPulseSettings(1f);
         ApplyTargetColor(neutralTintColor);
+    }
+
+    private void UpdateRescue()
+    {
+        rescueProgress += Time.deltaTime / rescueDuration;
+        sizeMultiplier = Mathf.Clamp01(1f - (rescueProgress * shrinkSpeed));
+        ApplyCurrentSize();
+        ApplyPulseSettings(1f);
+        ApplyTargetColor(rescueTintColor);
+
+        if (sizeMultiplier <= minimumSizeBeforeRescued)
+        {
+            RemoveTarget();
+        }
+    }
+
+    private void UpdateThreatEffects()
+    {
+        float pulseMultiplier = 1f - (currentDangerPressure * pulseReductionAmount);
+        ApplyPulseSettings(pulseMultiplier);
+
+        if (currentDangerPressure <= 0f)
+        {
+            ApplyTargetColor(neutralTintColor);
+            return;
+        }
+
+        float targetSizeMultiplier = Mathf.Lerp(1f, minimumSizeAtMaxThreat, currentDangerPressure);
+        sizeMultiplier = Mathf.MoveTowards(sizeMultiplier, targetSizeMultiplier, dangerShrinkSpeed * Time.deltaTime);
+        ApplyCurrentSize();
+
+        Color strongDangerColor = Color.Lerp(neutralTintColor, dangerTintColor, redTintStrength);
+        ApplyTargetColor(Color.Lerp(neutralTintColor, strongDangerColor, currentDangerPressure));
+
+        if (sizeMultiplier <= deathSizeThreshold)
+        {
+            RemoveTarget();
+        }
+    }
+
+    private float EvaluateDangerPressure()
+    {
+        int nearbyBurningTreeCount = CountNearbyBurningTrees();
+        if (nearbyBurningTreeCount < minimumNearbyFireCount)
+        {
+            return 0f;
+        }
+
+        int effectiveMaxFireCount = Mathf.Max(minimumNearbyFireCount, maxFireCountInfluence);
+        if (effectiveMaxFireCount == minimumNearbyFireCount)
+        {
+            return 1f;
+        }
+
+        return Mathf.InverseLerp(minimumNearbyFireCount, effectiveMaxFireCount, nearbyBurningTreeCount);
+    }
+
+    private int CountNearbyBurningTrees()
+    {
+        int burningTreeCount = 0;
+        float threatRadiusSquared = threatRadius * threatRadius;
+        Vector2 targetFlatPosition = ToFlatPosition(transform.position);
+        var allTrees = FlammableTree.RegisteredTrees;
+
+        for (int i = 0; i < allTrees.Count; i++)
+        {
+            FlammableTree tree = allTrees[i];
+            if (tree == null || !tree.IsBurning)
+            {
+                continue;
+            }
+
+            Vector2 treeFlatPosition = ToFlatPosition(tree.FireWorldPosition);
+            if ((treeFlatPosition - targetFlatPosition).sqrMagnitude > threatRadiusSquared)
+            {
+                continue;
+            }
+
+            burningTreeCount++;
+        }
+
+        return burningTreeCount;
     }
 
     private void CacheScaleIfNeeded()
@@ -153,7 +249,7 @@ public class RescueTarget : MonoBehaviour
             return;
         }
 
-        if (targetRenderer is SpriteRenderer spriteRenderer)
+        if (targetRenderer is SpriteRenderer)
         {
             targetColorPropertyName = string.Empty;
             return;
@@ -188,6 +284,18 @@ public class RescueTarget : MonoBehaviour
         transform.localScale = SpawnedBaseLocalScale * sizeMultiplier;
     }
 
+    private void ApplyPulseSettings(float multiplier)
+    {
+        if (pulseMotion == null)
+        {
+            return;
+        }
+
+        float clampedMultiplier = Mathf.Clamp01(multiplier);
+        pulseMotion.SetPulseStrength(clampedMultiplier);
+        pulseMotion.SetPulseSpeedMultiplier(clampedMultiplier);
+    }
+
     private void ApplyTargetColor(Color color)
     {
         CacheRendererIfNeeded();
@@ -217,9 +325,9 @@ public class RescueTarget : MonoBehaviour
         targetRenderer.SetPropertyBlock(targetPropertyBlock);
     }
 
-    private void CompleteRescue()
+    private void RemoveTarget()
     {
-        hasBeenRescued = true;
+        hasBeenRemoved = true;
         isBeingRescued = false;
 
         if (Application.isPlaying)
@@ -229,5 +337,23 @@ public class RescueTarget : MonoBehaviour
         }
 
         DestroyImmediate(gameObject);
+    }
+
+    private static Vector2 ToFlatPosition(Vector3 worldPosition)
+    {
+        return new Vector2(worldPosition.x, worldPosition.z);
+    }
+
+    private void OnValidate()
+    {
+        if (maxFireCountInfluence < minimumNearbyFireCount)
+        {
+            maxFireCountInfluence = minimumNearbyFireCount;
+        }
+
+        if (deathSizeThreshold < 0f)
+        {
+            deathSizeThreshold = 0f;
+        }
     }
 }

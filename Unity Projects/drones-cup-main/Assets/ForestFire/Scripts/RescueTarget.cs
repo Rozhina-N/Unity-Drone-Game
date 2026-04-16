@@ -29,6 +29,11 @@ public class RescueTarget : MonoBehaviour
     [SerializeField] [Range(0f, 1f)] private float minimumSizeAtMaxThreat = 0f;
     [SerializeField] [Min(0f)] private float deathSizeThreshold = 0.02f;
 
+    [Header("Recovery")]
+    [SerializeField] [Min(0f)] private float recoverySpeed = 0.3f;
+    [SerializeField] [Min(0f)] private float colorRecoverySpeed = 1f;
+    [SerializeField] [Min(0f)] private float pulseRecoverySpeed = 1f;
+
     public Renderer TargetRenderer => targetRenderer;
     public PulseMotion PulseMotion => pulseMotion;
     public Vector3 SpawnedBaseLocalScale { get; private set; }
@@ -42,6 +47,8 @@ public class RescueTarget : MonoBehaviour
     private float rescueProgress;
     private float sizeMultiplier = 1f;
     private float currentDangerPressure;
+    private float displayedDangerPressure;
+    private float currentPulseMultiplier = 1f;
     private bool isBeingRescued;
     private bool hasBeenRemoved;
 
@@ -120,6 +127,8 @@ public class RescueTarget : MonoBehaviour
         rescueProgress = 0f;
         sizeMultiplier = 1f;
         ApplyCurrentSize();
+        displayedDangerPressure = 0f;
+        currentPulseMultiplier = 1f;
         ApplyPulseSettings(1f);
         ApplyTargetColor(neutralTintColor);
     }
@@ -140,21 +149,35 @@ public class RescueTarget : MonoBehaviour
 
     private void UpdateThreatEffects()
     {
-        float pulseMultiplier = 1f - (currentDangerPressure * pulseReductionAmount);
-        ApplyPulseSettings(pulseMultiplier);
-
-        if (currentDangerPressure <= 0f)
-        {
-            ApplyTargetColor(neutralTintColor);
-            return;
-        }
-
         float targetSizeMultiplier = Mathf.Lerp(1f, minimumSizeAtMaxThreat, currentDangerPressure);
-        sizeMultiplier = Mathf.MoveTowards(sizeMultiplier, targetSizeMultiplier, dangerShrinkSpeed * Time.deltaTime);
+        float sizeChangeSpeed = targetSizeMultiplier < sizeMultiplier ? dangerShrinkSpeed : recoverySpeed;
+        sizeMultiplier = Mathf.MoveTowards(sizeMultiplier, targetSizeMultiplier, sizeChangeSpeed * Time.deltaTime);
         ApplyCurrentSize();
 
+        float targetPulseMultiplier = 1f - (currentDangerPressure * pulseReductionAmount);
+        float pulseChangeSpeed = targetPulseMultiplier < currentPulseMultiplier ? 1f : pulseRecoverySpeed;
+        if (targetPulseMultiplier < currentPulseMultiplier)
+        {
+            currentPulseMultiplier = targetPulseMultiplier;
+        }
+        else
+        {
+            currentPulseMultiplier = Mathf.MoveTowards(currentPulseMultiplier, targetPulseMultiplier, pulseChangeSpeed * Time.deltaTime);
+        }
+
+        ApplyPulseSettings(currentPulseMultiplier);
+
+        if (currentDangerPressure > displayedDangerPressure)
+        {
+            displayedDangerPressure = currentDangerPressure;
+        }
+        else
+        {
+            displayedDangerPressure = Mathf.MoveTowards(displayedDangerPressure, currentDangerPressure, colorRecoverySpeed * Time.deltaTime);
+        }
+
         Color strongDangerColor = Color.Lerp(neutralTintColor, dangerTintColor, redTintStrength);
-        ApplyTargetColor(Color.Lerp(neutralTintColor, strongDangerColor, currentDangerPressure));
+        ApplyTargetColor(Color.Lerp(neutralTintColor, strongDangerColor, displayedDangerPressure));
 
         if (sizeMultiplier <= deathSizeThreshold)
         {

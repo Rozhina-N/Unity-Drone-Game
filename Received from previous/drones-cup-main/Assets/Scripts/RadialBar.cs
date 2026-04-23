@@ -19,6 +19,7 @@ public class RadialBar : MonoBehaviour
     void ChangeValue(float amount)
     {
         currentValue += amount;
+        UpdateValue();
     }
 
     /// <summary>
@@ -27,12 +28,16 @@ public class RadialBar : MonoBehaviour
     void SetValue(float value)
     {
         currentValue = value;
+        UpdateValue();
     }
 
-    // Update is called once per frame
-    void Update()
+    void UpdateValue()
     {
         float radialValue = currentValue / MaxValue;
         this.gameObject.GetComponent<UnityEngine.UI.Image>().fillAmount = radialValue;
+    }
+
+    void Update()
+    {
     }
 }

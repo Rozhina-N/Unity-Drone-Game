@@ -36,6 +36,7 @@ public class FirefighterInteraction : MonoBehaviour
     };
     [SerializeField] private bool useDropOffHeightCheck = false;
     [SerializeField] [Min(0f)] private float dropOffHeightTolerance = 5f;
+    [SerializeField] [Min(0.01f)] private float dropOffSecondsPerPerson = 1f;
 
     private readonly HashSet<FlammableTree> activeTargets = new HashSet<FlammableTree>();
     private readonly HashSet<FlammableTree> frameTargets = new HashSet<FlammableTree>();
@@ -44,6 +45,7 @@ public class FirefighterInteraction : MonoBehaviour
     private readonly HashSet<RescueTarget> frameRescueTargets = new HashSet<RescueTarget>();
     private readonly List<RescueTarget> stopRescueBuffer = new List<RescueTarget>();
     private readonly List<RescueTarget> carriedRescueTargets = new List<RescueTarget>();
+    private float dropOffTimer;
     private bool isInteractHeld;
 
     public int CarriedRescueCount => carriedRescueTargets.Count;
@@ -210,6 +212,7 @@ public class FirefighterInteraction : MonoBehaviour
     {
         if (carriedRescueTargets.Count == 0)
         {
+            dropOffTimer = 0f;
             return;
         }
 
@@ -217,10 +220,11 @@ public class FirefighterInteraction : MonoBehaviour
 
         if (!IsInsideAnyDropOffArea(transform.position))
         {
+            dropOffTimer = 0f;
             return;
         }
 
-        DropOffCarriedTargets();
+        UpdateTimedDropOff();
     }
 
     private void ClearActiveTargets()
@@ -276,21 +280,35 @@ public class FirefighterInteraction : MonoBehaviour
         Debug.Log($"Rescued {target.name}. Carrying {carriedRescueTargets.Count} / {rescueCarryLimit}.", this);
     }
 
-    private void DropOffCarriedTargets()
+    private void UpdateTimedDropOff()
     {
-        int droppedCount = carriedRescueTargets.Count;
+        dropOffTimer += Time.deltaTime;
+        if (dropOffTimer < dropOffSecondsPerPerson)
+        {
+            return;
+        }
 
-        for (int i = carriedRescueTargets.Count - 1; i >= 0; i--)
+        dropOffTimer = 0f;
+        DropOffOneCarriedTarget();
+    }
+
+    private void DropOffOneCarriedTarget()
+    {
+        for (int i = 0; i < carriedRescueTargets.Count; i++)
         {
             RescueTarget target = carriedRescueTargets[i];
+            carriedRescueTargets.RemoveAt(i);
+
             if (target != null)
             {
                 target.CompleteDropOff();
             }
+
+            Debug.Log($"Dropped off 1 rescued target. Carrying {carriedRescueTargets.Count} / {rescueCarryLimit}.", this);
+            return;
         }
 
         carriedRescueTargets.Clear();
-        Debug.Log($"Dropped off {droppedCount} rescued target(s).", this);
     }
 
     private FlammableTree[] GetAllTrees()

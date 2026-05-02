@@ -40,6 +40,8 @@ public class RescueTarget : MonoBehaviour
     public Vector3 RescueWorldPosition => transform.position;
     public bool CanBeRescued => !hasBeenRemoved;
 
+    public event System.Action<RescueTarget> RescueCompleted;
+
     private Vector3 prefabLocalScale;
     private bool scaleCached;
     private MaterialPropertyBlock targetPropertyBlock;
@@ -143,7 +145,7 @@ public class RescueTarget : MonoBehaviour
 
         if (sizeMultiplier <= minimumSizeBeforeRescued)
         {
-            RemoveTarget();
+            CompleteRescue();
         }
     }
 
@@ -352,6 +354,28 @@ public class RescueTarget : MonoBehaviour
     {
         hasBeenRemoved = true;
         isBeingRescued = false;
+        RescueCompleted = null;
+
+        if (Application.isPlaying)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        DestroyImmediate(gameObject);
+    }
+
+    private void CompleteRescue()
+    {
+        hasBeenRemoved = true;
+        isBeingRescued = false;
+        gameObject.SetActive(false);
+        RescueCompleted?.Invoke(this);
+    }
+
+    public void CompleteDropOff()
+    {
+        RescueCompleted = null;
 
         if (Application.isPlaying)
         {

@@ -811,6 +811,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FirefighterInteraction
   forestSpawner: {fileID: 0}
   treeSearchRoot: {fileID: 0}
+  rescueTargetSpawner: {fileID: 0}
+  rescueTargetSearchRoot: {fileID: 0}
   cylinderRadius: 8
   minimumHeightAboveFire: 0.5
   maximumHeightAboveFire: 5
+  rescueRange: 4
+  minimumHeightAboveTarget: 0.5
+  maximumHeightAboveTarget: 5
+  rescueCarryLimit: 3
+  rescueDropOffAreas:
+  - {fileID: 0}
+  - {fileID: 0}
+  useDropOffHeightCheck: 1
+  dropOffHeightTolerance: 2

@@ -5,6 +5,14 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(PlayerInput))]
 public class FirefighterInteraction : MonoBehaviour
 {
+    private static readonly string[] DefaultRescueDropOffAreaNames =
+    {
+        "DroneLandpadRescue1",
+        "DroneLandpadRescue2",
+        "Drone Landpad Rescue 1",
+        "Drone Landpad Rescue 2"
+    };
+
     [Header("Optional References")]
     [SerializeField] private ForestSpawner forestSpawner;
     [SerializeField] private Transform treeSearchRoot;
@@ -21,13 +29,25 @@ public class FirefighterInteraction : MonoBehaviour
     [SerializeField] [Min(0f)] private float minimumHeightAboveTarget = 0.5f;
     [SerializeField] [Min(0f)] private float maximumHeightAboveTarget = 5f;
 
+    [Header("Rescue Carrying")]
+    [SerializeField] [Range(2, 5)] private int rescueCarryLimit = 5;
+
+    [Header("Rescue Drop-off Areas")]
+    [SerializeField] private BoxCollider[] rescueDropOffAreas;
+    [SerializeField] private bool useDropOffHeightCheck = false;
+    [SerializeField] [Min(0f)] private float dropOffHeightTolerance = 5f;
+
     private readonly HashSet<FlammableTree> activeTargets = new HashSet<FlammableTree>();
     private readonly HashSet<FlammableTree> frameTargets = new HashSet<FlammableTree>();
     private readonly List<FlammableTree> stopBuffer = new List<FlammableTree>();
     private readonly HashSet<RescueTarget> activeRescueTargets = new HashSet<RescueTarget>();
     private readonly HashSet<RescueTarget> frameRescueTargets = new HashSet<RescueTarget>();
     private readonly List<RescueTarget> stopRescueBuffer = new List<RescueTarget>();
+    private readonly List<RescueTarget> carriedRescueTargets = new List<RescueTarget>();
     private bool isInteractHeld;
+
+    public int CarriedRescueCount => carriedRescueTargets.Count;
+    public int RescueCarryLimit => rescueCarryLimit;
 
     public void Extinguish(InputAction.CallbackContext context)
     {
@@ -47,6 +67,8 @@ public class FirefighterInteraction : MonoBehaviour
 
     private void Update()
     {
+        UpdateDropOff();
+
         if (!isInteractHeld)
         {
             ClearActiveTargets();
@@ -135,6 +157,12 @@ public class FirefighterInteraction : MonoBehaviour
                 continue;
             }
 
+            bool alreadyBeingRescued = activeRescueTargets.Contains(target);
+            if (!alreadyBeingRescued && carriedRescueTargets.Count + frameRescueTargets.Count >= rescueCarryLimit)
+            {
+                continue;
+            }
+
             Vector3 targetPosition = target.RescueWorldPosition;
             float heightAboveTarget = playerHeight - targetPosition.y;
             if (heightAboveTarget < minimumHeightAboveTarget || heightAboveTarget > maximumHeightAboveTarget)
@@ -149,6 +177,8 @@ public class FirefighterInteraction : MonoBehaviour
             }
 
             frameRescueTargets.Add(target);
+            target.RescueCompleted -= HandleRescueCompleted;
+            target.RescueCompleted += HandleRescueCompleted;
             target.BeginRescue();
         }
 
@@ -167,12 +197,30 @@ public class FirefighterInteraction : MonoBehaviour
             RescueTarget target = stopRescueBuffer[i];
             if (target != null)
             {
+                target.RescueCompleted -= HandleRescueCompleted;
                 target.StopRescue();
             }
         }
 
         activeRescueTargets.Clear();
         activeRescueTargets.UnionWith(frameRescueTargets);
+    }
+
+    private void UpdateDropOff()
+    {
+        if (carriedRescueTargets.Count == 0)
+        {
+            return;
+        }
+
+        TryResolveDefaultDropOffAreas();
+
+        if (!IsInsideAnyDropOffArea(transform.position))
+        {
+            return;
+        }
+
+        DropOffCarriedTargets();
     }
 
     private void ClearActiveTargets()
@@ -196,6 +244,7 @@ public class FirefighterInteraction : MonoBehaviour
         {
             if (target != null)
             {
+                target.RescueCompleted -= HandleRescueCompleted;
                 target.StopRescue();
             }
         }
@@ -203,6 +252,45 @@ public class FirefighterInteraction : MonoBehaviour
         activeRescueTargets.Clear();
         frameRescueTargets.Clear();
         stopRescueBuffer.Clear();
+    }
+
+    private void HandleRescueCompleted(RescueTarget target)
+    {
+        if (target == null)
+        {
+            return;
+        }
+
+        target.RescueCompleted -= HandleRescueCompleted;
+        activeRescueTargets.Remove(target);
+        frameRescueTargets.Remove(target);
+        stopRescueBuffer.Remove(target);
+
+        if (carriedRescueTargets.Count >= rescueCarryLimit)
+        {
+            target.CompleteDropOff();
+            return;
+        }
+
+        carriedRescueTargets.Add(target);
+        Debug.Log($"Rescued {target.name}. Carrying {carriedRescueTargets.Count} / {rescueCarryLimit}.", this);
+    }
+
+    private void DropOffCarriedTargets()
+    {
+        int droppedCount = carriedRescueTargets.Count;
+
+        for (int i = carriedRescueTargets.Count - 1; i >= 0; i--)
+        {
+            RescueTarget target = carriedRescueTargets[i];
+            if (target != null)
+            {
+                target.CompleteDropOff();
+            }
+        }
+
+        carriedRescueTargets.Clear();
+        Debug.Log($"Dropped off {droppedCount} rescued target(s).", this);
     }
 
     private FlammableTree[] GetAllTrees()
@@ -283,6 +371,80 @@ public class FirefighterInteraction : MonoBehaviour
         }
 
         return null;
+    }
+
+    private void TryResolveDefaultDropOffAreas()
+    {
+        if (rescueDropOffAreas != null && rescueDropOffAreas.Length > 0)
+        {
+            return;
+        }
+
+        List<BoxCollider> foundAreas = new List<BoxCollider>();
+        for (int i = 0; i < DefaultRescueDropOffAreaNames.Length; i++)
+        {
+            GameObject areaObject = GameObject.Find(DefaultRescueDropOffAreaNames[i]);
+            if (areaObject == null)
+            {
+                continue;
+            }
+
+            BoxCollider areaCollider = areaObject.GetComponent<BoxCollider>();
+            if (areaCollider != null && !foundAreas.Contains(areaCollider))
+            {
+                foundAreas.Add(areaCollider);
+            }
+        }
+
+        if (foundAreas.Count > 0)
+        {
+            rescueDropOffAreas = foundAreas.ToArray();
+        }
+    }
+
+    private bool IsInsideAnyDropOffArea(Vector3 worldPosition)
+    {
+        if (rescueDropOffAreas == null)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < rescueDropOffAreas.Length; i++)
+        {
+            if (IsInsideDropOffArea(worldPosition, rescueDropOffAreas[i]))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool IsInsideDropOffArea(Vector3 worldPosition, BoxCollider dropOffArea)
+    {
+        if (dropOffArea == null)
+        {
+            return false;
+        }
+
+        Bounds bounds = dropOffArea.bounds;
+        bool insideFlatArea =
+            worldPosition.x >= bounds.min.x &&
+            worldPosition.x <= bounds.max.x &&
+            worldPosition.z >= bounds.min.z &&
+            worldPosition.z <= bounds.max.z;
+
+        if (!insideFlatArea)
+        {
+            return false;
+        }
+
+        if (!useDropOffHeightCheck)
+        {
+            return true;
+        }
+
+        return Mathf.Abs(worldPosition.y - bounds.center.y) <= dropOffHeightTolerance;
     }
 
     private static Vector2 ToFlatPosition(Vector3 worldPosition)

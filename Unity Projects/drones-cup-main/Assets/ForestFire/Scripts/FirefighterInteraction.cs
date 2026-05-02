@@ -5,14 +5,6 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(PlayerInput))]
 public class FirefighterInteraction : MonoBehaviour
 {
-    private static readonly string[] DefaultRescueDropOffAreaNames =
-    {
-        "DroneLandpadRescue1",
-        "DroneLandpadRescue2",
-        "Drone Landpad Rescue 1",
-        "Drone Landpad Rescue 2"
-    };
-
     [Header("Optional References")]
     [SerializeField] private ForestSpawner forestSpawner;
     [SerializeField] private Transform treeSearchRoot;
@@ -34,6 +26,14 @@ public class FirefighterInteraction : MonoBehaviour
 
     [Header("Rescue Drop-off Areas")]
     [SerializeField] private BoxCollider[] rescueDropOffAreas;
+    [SerializeField]
+    private string[] rescueDropOffAreaNames =
+    {
+        "DroneLandpadRescue1",
+        "DroneLandpadRescue2",
+        "Drone Landpad Rescue 1",
+        "Drone Landpad Rescue 2"
+    };
     [SerializeField] private bool useDropOffHeightCheck = false;
     [SerializeField] [Min(0f)] private float dropOffHeightTolerance = 5f;
 
@@ -375,22 +375,24 @@ public class FirefighterInteraction : MonoBehaviour
 
     private void TryResolveDefaultDropOffAreas()
     {
-        if (rescueDropOffAreas != null && rescueDropOffAreas.Length > 0)
+        if (HasAssignedDropOffAreas())
         {
             return;
         }
 
         List<BoxCollider> foundAreas = new List<BoxCollider>();
-        for (int i = 0; i < DefaultRescueDropOffAreaNames.Length; i++)
+        AddAssignedDropOffAreas(foundAreas);
+
+        BoxCollider[] allBoxColliders = FindObjectsByType<BoxCollider>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < allBoxColliders.Length; i++)
         {
-            GameObject areaObject = GameObject.Find(DefaultRescueDropOffAreaNames[i]);
-            if (areaObject == null)
+            BoxCollider areaCollider = allBoxColliders[i];
+            if (areaCollider == null || !MatchesDropOffAreaName(areaCollider.transform))
             {
                 continue;
             }
 
-            BoxCollider areaCollider = areaObject.GetComponent<BoxCollider>();
-            if (areaCollider != null && !foundAreas.Contains(areaCollider))
+            if (!foundAreas.Contains(areaCollider))
             {
                 foundAreas.Add(areaCollider);
             }
@@ -400,6 +402,76 @@ public class FirefighterInteraction : MonoBehaviour
         {
             rescueDropOffAreas = foundAreas.ToArray();
         }
+    }
+
+    private bool HasAssignedDropOffAreas()
+    {
+        if (rescueDropOffAreas == null)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < rescueDropOffAreas.Length; i++)
+        {
+            if (rescueDropOffAreas[i] != null)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void AddAssignedDropOffAreas(List<BoxCollider> foundAreas)
+    {
+        if (rescueDropOffAreas == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < rescueDropOffAreas.Length; i++)
+        {
+            BoxCollider area = rescueDropOffAreas[i];
+            if (area != null && !foundAreas.Contains(area))
+            {
+                foundAreas.Add(area);
+            }
+        }
+    }
+
+    private bool MatchesDropOffAreaName(Transform areaTransform)
+    {
+        if (areaTransform == null || rescueDropOffAreaNames == null)
+        {
+            return false;
+        }
+
+        string objectName = NormalizeDropOffName(areaTransform.name);
+        for (int i = 0; i < rescueDropOffAreaNames.Length; i++)
+        {
+            string configuredName = NormalizeDropOffName(rescueDropOffAreaNames[i]);
+            if (string.IsNullOrEmpty(configuredName))
+            {
+                continue;
+            }
+
+            if (objectName == configuredName)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static string NormalizeDropOffName(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        return value.Replace(" ", string.Empty).ToLowerInvariant();
     }
 
     private bool IsInsideAnyDropOffArea(Vector3 worldPosition)

@@ -820,8 +820,9 @@ MonoBehaviour:
   minimumHeightAboveTarget: 0.5
   maximumHeightAboveTarget: 5
   rescueCarryLimit: 3
-  rescueDropOffAreas:
-  - {fileID: 0}
-  - {fileID: 0}
+  rescueDropOffAreas: []
+  rescueDropOffAreaNames:
+  - Drone Landpad Rescue 1
+  - Drone Landpad Rescue 2
   useDropOffHeightCheck: 1
   dropOffHeightTolerance: 2

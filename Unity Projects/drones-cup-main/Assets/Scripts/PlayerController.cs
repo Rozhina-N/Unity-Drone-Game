@@ -41,12 +41,11 @@ public class PlayerController : MonoBehaviour
         {
             CacheFlightActions();
         }
-
+        
         Vector3 horizontalMove = new Vector3(moveInput.x, 0f, moveInput.y);
         if (horizontalMove != Vector3.zero)
         {
             Quaternion targetRotation = Quaternion.LookRotation(horizontalMove);
-
             transform.rotation = Quaternion.RotateTowards(
                 transform.rotation,
                 targetRotation,

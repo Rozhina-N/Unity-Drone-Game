@@ -45,6 +45,13 @@ public class WSHostOLD : MonoBehaviour
     public int WebSocketPort = 8765;
     public GameObject VirtualDrone;
     public bool moveTo = false;
+    [Header("Unity Bounds")]
+    public Transform UnityMinTransform;
+    public Transform UnityMaxTransform;
+
+    [Header("Drone Real World Bounds")]
+    public Vector3 DroneMinPosition;
+    public Vector3 DroneMaxPosition;
 
     public float GameBorderValue;
     public float RealWorldBorderValue;
@@ -264,11 +271,13 @@ public class WSHostOLD : MonoBehaviour
     {
         while (true)
         {
+            Vector3 dronePos = ConvertUnityToDronePosition(VirtualDrone.transform.position);
+
             JObject message = new JObject
             {
-                ["x"] = VirtualDrone.transform.position.x / Factor,
-                ["y"] = VirtualDrone.transform.position.y / Factor,
-                ["z"] = VirtualDrone.transform.position.z / Factor,
+                ["x"] = dronePos.x,
+                ["y"] = dronePos.y,
+                ["z"] = dronePos.z,
                 ["yaw"] = VirtualDrone.transform.rotation.eulerAngles.y
             };
 
@@ -291,5 +300,24 @@ public class WSHostOLD : MonoBehaviour
             // When moveTo is true, it sends the command to move to the new position
             yield return new WaitForSeconds(0.1f);
         }
+    }
+    private Vector3 ConvertUnityToDronePosition(Vector3 unityPosition)
+    {
+        Vector3 unityMin = UnityMinTransform.position;
+        Vector3 unityMax = UnityMaxTransform.position;
+
+        Vector3 normalized = new Vector3(
+            Mathf.InverseLerp(unityMin.x, unityMax.x, unityPosition.x),
+            Mathf.InverseLerp(unityMin.y, unityMax.y, unityPosition.y),
+            Mathf.InverseLerp(unityMin.z, unityMax.z, unityPosition.z)
+        );
+
+        Vector3 dronePosition = new Vector3(
+            Mathf.Lerp(DroneMinPosition.x, DroneMaxPosition.x, normalized.x),
+            Mathf.Lerp(DroneMinPosition.y, DroneMaxPosition.y, normalized.y),
+            Mathf.Lerp(DroneMinPosition.z, DroneMaxPosition.z, normalized.z)
+        );
+
+        return dronePosition;
     }
 }

@@ -5,6 +5,11 @@ public class ForestSpawner : MonoBehaviour
 {
     private const string DefaultSpawnParentName = "Spawned Trees";
     public Transform SpawnedTreeRoot => spawnedTreeParent != null ? spawnedTreeParent : transform.Find(DefaultSpawnParentName);
+    public IReadOnlyList<Vector2> OpeningCenters => openingCenters;
+    public float OpeningRadius => openingRadius;
+    public bool HasGeneratedOpenings => openingCenters.Count > 0;
+
+    public event System.Action ForestRespawned;
 
     [Header("References")]
     [SerializeField] private BoxCollider spawnArea;
@@ -86,10 +91,36 @@ public class ForestSpawner : MonoBehaviour
                 $"ForestSpawner on {name} only placed {spawnedCount} / {treeCount} trees. " +
                 "Try lowering Tree Count, reducing Minimum Spacing, or shrinking the forest openings.",
                 this);
-            return;
+        }
+        else
+        {
+            Debug.Log($"ForestSpawner on {name} spawned {spawnedCount} trees.", this);
         }
 
-        Debug.Log($"ForestSpawner on {name} spawned {spawnedCount} trees.", this);
+        ForestRespawned?.Invoke();
+    }
+
+    public bool TryGetRandomOpeningPosition(out Vector3 worldPosition, float edgePadding = 0f)
+    {
+        worldPosition = Vector3.zero;
+
+        if (openingCenters.Count == 0)
+        {
+            return false;
+        }
+
+        float usableRadius = Mathf.Max(openingRadius - edgePadding, 0f);
+        if (usableRadius <= 0f)
+        {
+            return false;
+        }
+
+        Vector2 openingCenter = openingCenters[Random.Range(0, openingCenters.Count)];
+        Vector2 openingOffset = Random.insideUnitCircle * usableRadius;
+        Vector2 openingPosition = openingCenter + openingOffset;
+
+        worldPosition = new Vector3(openingPosition.x, fixedY, openingPosition.y);
+        return true;
     }
 
     private bool ValidateSetup()

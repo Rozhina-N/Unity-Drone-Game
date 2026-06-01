@@ -4,6 +4,7 @@ public class FlammableTree : MonoBehaviour
 {
     private const string BaseColorProperty = "_BaseColor";
     private const string ColorProperty = "_Color";
+    private static readonly System.Collections.Generic.List<FlammableTree> RegisteredTreesInternal = new System.Collections.Generic.List<FlammableTree>();
 
     private enum BurnState
     {
@@ -49,6 +50,20 @@ public class FlammableTree : MonoBehaviour
     public bool CanBeExtinguished => burnState == BurnState.Burning || burnState == BurnState.Extinguishing;
     public Vector3 FireWorldPosition => fireAttachPoint != null ? fireAttachPoint.position : transform.position;
     public FireVisual ActiveFireVisual => activeFireVisual;
+    public static System.Collections.Generic.IReadOnlyList<FlammableTree> RegisteredTrees => RegisteredTreesInternal;
+
+    private void OnEnable()
+    {
+        if (!RegisteredTreesInternal.Contains(this))
+        {
+            RegisteredTreesInternal.Add(this);
+        }
+    }
+
+    private void OnDisable()
+    {
+        RegisteredTreesInternal.Remove(this);
+    }
 
     private void Reset()
     {

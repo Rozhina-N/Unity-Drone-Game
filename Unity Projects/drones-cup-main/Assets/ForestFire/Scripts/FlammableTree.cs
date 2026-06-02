@@ -29,12 +29,14 @@ public class FlammableTree : MonoBehaviour
     [Header("Extinguish Settings")]
     [SerializeField] [Min(0.1f)] private float extinguishDuration = 2f;
     [SerializeField] [Min(0f)] private float shrinkSpeed = 1f;
+    [SerializeField] private Vector3 extinguishingVisualLocalOffset = new Vector3(0f, 0f, -0.01f);
     [SerializeField] private bool blockIgnitionAfterSuccessfulExtinguish = true;
 
     [Header("Tree Visual")]
     [SerializeField] private Renderer treeRenderer;
 
-    private FireVisual activeFireVisual;
+    private FireVisual activeBurningFireVisual;
+    private FireVisual activeExtinguishingFireVisual;
     private MaterialPropertyBlock treePropertyBlock;
     private string treeColorPropertyName;
     private Color normalTreeColor = Color.white;
@@ -51,7 +53,8 @@ public class FlammableTree : MonoBehaviour
     public bool CanIgnite => burnState == BurnState.Normal && !ignitionBlocked;
     public bool CanBeExtinguished => burnState == BurnState.Burning || burnState == BurnState.Extinguishing;
     public Vector3 FireWorldPosition => fireAttachPoint != null ? fireAttachPoint.position : transform.position;
-    public FireVisual ActiveFireVisual => activeFireVisual;
+    public FireVisual ActiveFireVisual => activeBurningFireVisual;
+    public FireVisual ActiveExtinguishingVisual => activeExtinguishingFireVisual;
     public static System.Collections.Generic.IReadOnlyList<FlammableTree> RegisteredTrees => RegisteredTreesInternal;
 
     private void OnEnable()
@@ -85,12 +88,7 @@ public class FlammableTree : MonoBehaviour
         TryCacheTreeRenderer();
         CacheTreeColorState();
 
-        activeFireVisual = GetComponentInChildren<FireVisual>(true);
-        if (activeFireVisual != null)
-        {
-            activeFireVisual.ResetVisualState();
-            activeFireVisual.SetVisible(false);
-        }
+        CacheExistingFireVisuals();
 
         ResetTreeState();
     }
@@ -126,15 +124,16 @@ public class FlammableTree : MonoBehaviour
             return false;
         }
 
-        if (!TryGetOrCreateFireVisual())
+        if (!TryGetOrCreateBurningFireVisual())
         {
             return false;
         }
 
         ignitionBlocked = false;
-        activeFireVisual.ResetVisualState();
-        activeFireVisual.ApplyMaterial(burningFireMaterial);
-        activeFireVisual.SetVisible(true);
+        activeBurningFireVisual.ResetVisualState();
+        activeBurningFireVisual.ApplyMaterial(burningFireMaterial);
+        activeBurningFireVisual.SetVisible(true);
+        HideFireVisual(activeExtinguishingFireVisual);
 
         burnTimer = 0f;
         extinguishTimer = 0f;
@@ -165,7 +164,7 @@ public class FlammableTree : MonoBehaviour
             return;
         }
 
-        if (!TryGetOrCreateFireVisual())
+        if (!TryGetOrCreateExtinguishingVisuals())
         {
             return;
         }
@@ -175,15 +174,19 @@ public class FlammableTree : MonoBehaviour
             burnState = BurnState.Extinguishing;
             extinguishTimer = 0f;
             extinguishStartColor = GetCurrentBurnColor();
-            activeFireVisual.ResetVisualState();
+            activeBurningFireVisual.ResetVisualState();
+            ResetFireVisual(activeExtinguishingFireVisual);
         }
 
-        if (extinguishingFireMaterial != null)
+        activeBurningFireVisual.ApplyMaterial(burningFireMaterial);
+        activeBurningFireVisual.SetVisible(true);
+
+        if (activeExtinguishingFireVisual != null)
         {
-            activeFireVisual.ApplyMaterial(extinguishingFireMaterial);
+            activeExtinguishingFireVisual.ApplyMaterial(extinguishingFireMaterial);
+            activeExtinguishingFireVisual.SetVisible(true);
         }
 
-        activeFireVisual.SetVisible(true);
         UpdateExtinguishingVisuals(GetExtinguishProgress());
     }
 
@@ -197,13 +200,14 @@ public class FlammableTree : MonoBehaviour
         burnState = BurnState.Burning;
         extinguishTimer = 0f;
 
-        if (activeFireVisual != null)
+        if (activeBurningFireVisual != null)
         {
-            activeFireVisual.ResetVisualState();
-            activeFireVisual.ApplyMaterial(burningFireMaterial);
-            activeFireVisual.SetVisible(true);
+            activeBurningFireVisual.ResetVisualState();
+            activeBurningFireVisual.ApplyMaterial(burningFireMaterial);
+            activeBurningFireVisual.SetVisible(true);
         }
 
+        HideFireVisual(activeExtinguishingFireVisual);
         UpdateBurningVisuals(GetBurnProgress());
     }
 
@@ -264,10 +268,12 @@ public class FlammableTree : MonoBehaviour
     {
         ApplyTreeColor(GetBurnColorForProgress(burnProgress));
 
-        if (activeFireVisual != null)
+        if (activeBurningFireVisual != null)
         {
-            activeFireVisual.SetScaleMultiplier(1f);
+            activeBurningFireVisual.SetScaleMultiplier(1f);
         }
+
+        HideFireVisual(activeExtinguishingFireVisual);
     }
 
     private void UpdateExtinguishingVisuals(float extinguishProgress)
@@ -275,9 +281,14 @@ public class FlammableTree : MonoBehaviour
         float scaleMultiplier = Mathf.Clamp01(1f - (extinguishProgress * shrinkSpeed));
         ApplyTreeColor(Color.Lerp(extinguishStartColor, normalTreeColor, extinguishProgress));
 
-        if (activeFireVisual != null)
+        if (activeBurningFireVisual != null)
         {
-            activeFireVisual.SetScaleMultiplier(scaleMultiplier);
+            activeBurningFireVisual.SetScaleMultiplier(scaleMultiplier);
+        }
+
+        if (activeExtinguishingFireVisual != null)
+        {
+            activeExtinguishingFireVisual.SetScaleMultiplier(scaleMultiplier);
         }
     }
 
@@ -289,11 +300,7 @@ public class FlammableTree : MonoBehaviour
         ignitionBlocked = blockIgnitionAfterSuccessfulExtinguish;
         ApplyTreeColor(normalTreeColor);
 
-        if (activeFireVisual != null)
-        {
-            activeFireVisual.ResetVisualState();
-            activeFireVisual.SetVisible(false);
-        }
+        ResetAndHideFireVisuals();
     }
 
     private void BecomeBurnt()
@@ -301,11 +308,7 @@ public class FlammableTree : MonoBehaviour
         burnState = BurnState.Burnt;
         ApplyTreeColor(Color.black);
 
-        if (activeFireVisual != null)
-        {
-            activeFireVisual.ResetVisualState();
-            activeFireVisual.SetVisible(false);
-        }
+        ResetAndHideFireVisuals();
 
         TreeBurnt?.Invoke(this);
     }
@@ -319,11 +322,7 @@ public class FlammableTree : MonoBehaviour
         extinguishStartColor = normalTreeColor;
         ApplyTreeColor(normalTreeColor);
 
-        if (activeFireVisual != null)
-        {
-            activeFireVisual.ResetVisualState();
-            activeFireVisual.SetVisible(false);
-        }
+        ResetAndHideFireVisuals();
     }
 
     private float GetBurnProgress()
@@ -347,9 +346,25 @@ public class FlammableTree : MonoBehaviour
         return Color.Lerp(normalTreeColor, targetBurnColor, burnProgress);
     }
 
-    private bool TryGetOrCreateFireVisual()
+    private void CacheExistingFireVisuals()
     {
-        if (activeFireVisual != null)
+        FireVisual[] existingFireVisuals = GetComponentsInChildren<FireVisual>(true);
+        if (existingFireVisuals.Length > 0)
+        {
+            activeBurningFireVisual = existingFireVisuals[0];
+        }
+
+        if (existingFireVisuals.Length > 1)
+        {
+            activeExtinguishingFireVisual = existingFireVisuals[1];
+        }
+
+        ResetAndHideFireVisuals();
+    }
+
+    private bool TryGetOrCreateBurningFireVisual()
+    {
+        if (activeBurningFireVisual != null)
         {
             return true;
         }
@@ -361,11 +376,64 @@ public class FlammableTree : MonoBehaviour
         }
 
         Transform attachTarget = fireAttachPoint != null ? fireAttachPoint : transform;
-        activeFireVisual = Instantiate(fireVisualPrefab, attachTarget, false);
-        activeFireVisual.name = fireVisualPrefab.name;
-        activeFireVisual.ResetVisualState();
-        activeFireVisual.SetVisible(false);
+        activeBurningFireVisual = Instantiate(fireVisualPrefab, attachTarget, false);
+        activeBurningFireVisual.name = $"{fireVisualPrefab.name} Fire";
+        activeBurningFireVisual.ResetVisualState();
+        activeBurningFireVisual.SetVisible(false);
         return true;
+    }
+
+    private bool TryGetOrCreateExtinguishingVisuals()
+    {
+        if (!TryGetOrCreateBurningFireVisual())
+        {
+            return false;
+        }
+
+        if (extinguishingFireMaterial == null)
+        {
+            return true;
+        }
+
+        if (activeExtinguishingFireVisual != null)
+        {
+            return true;
+        }
+
+        Transform attachTarget = fireAttachPoint != null ? fireAttachPoint : transform;
+        activeExtinguishingFireVisual = Instantiate(fireVisualPrefab, attachTarget, false);
+        activeExtinguishingFireVisual.name = $"{fireVisualPrefab.name} Water";
+        activeExtinguishingFireVisual.transform.localPosition += extinguishingVisualLocalOffset;
+        activeExtinguishingFireVisual.ResetVisualState();
+        activeExtinguishingFireVisual.SetVisible(false);
+        return true;
+    }
+
+    private void ResetAndHideFireVisuals()
+    {
+        HideFireVisual(activeBurningFireVisual);
+        HideFireVisual(activeExtinguishingFireVisual);
+    }
+
+    private void HideFireVisual(FireVisual fireVisual)
+    {
+        if (fireVisual == null)
+        {
+            return;
+        }
+
+        fireVisual.ResetVisualState();
+        fireVisual.SetVisible(false);
+    }
+
+    private void ResetFireVisual(FireVisual fireVisual)
+    {
+        if (fireVisual == null)
+        {
+            return;
+        }
+
+        fireVisual.ResetVisualState();
     }
 
     private bool TryCacheTreeRenderer()

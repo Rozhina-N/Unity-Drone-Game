@@ -1677,6 +1677,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 9054791171994244081, guid: 04e41fc9b03734c469fa8328b5ac569f, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1587807961}
+    - targetCorrespondingSourceObject: {fileID: 9054791171994244081, guid: 04e41fc9b03734c469fa8328b5ac569f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1587807966}
   m_SourcePrefab: {fileID: 100100000, guid: 04e41fc9b03734c469fa8328b5ac569f, type: 3}
 --- !u!1 &1587807960 stripped
 GameObject:
@@ -1785,6 +1788,33 @@ CharacterController:
   m_SkinWidth: 0.08
   m_MinMoveDistance: 0.001
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1587807966
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1587807960}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d94112d9b2d34260a30c2c3e9f06ec88, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RescueCapacityBar
+  firefighterInteraction: {fileID: 1587807961}
+  worldCanvas: {fileID: 0}
+  backgroundImage: {fileID: 0}
+  fillImage: {fileID: 0}
+  fullText: {fileID: 0}
+  positionOffset: {x: 0, y: 1.5, z: 2}
+  barSize: {x: 300, y: 50}
+  worldScale: 0.01
+  normalFillColor: {r: 0.25, g: 0.75, b: 1, a: 1}
+  fullFillColor: {r: 1, g: 0, b: 0, a: 1}
+  backgroundColor: {r: 0, g: 0, b: 0, a: 0.65}
+  fullTextColor: {r: 1, g: 1, b: 1, a: 1}
+  hideWhenEmpty: 0
+  showFullText: 1
+  autoCreateUiIfMissing: 1
 --- !u!1 &1706594993
 GameObject:
   m_ObjectHideFlags: 0
@@ -2231,6 +2261,70 @@ Transform:
   m_Children: []
   m_Father: {fileID: 552872119}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2081092860
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2081092862}
+  - component: {fileID: 2081092861}
+  m_Layer: 0
+  m_Name: ScoreManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &2081092861
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2081092860}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4248eda86d78438096b3261206077c86, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ScoreManager
+  maxScore: 750
+  burntTreePenalty: 1
+  burntPersonPenalty: 50
+  displayMode: 0
+  clampScoreToZero: 1
+  scoreText: {fileID: 0}
+  showForestSavedProgressBar: 1
+  autoCreateProgressBarIfMissing: 1
+  showProgressBarLabel: 1
+  progressBarRoot: {fileID: 0}
+  forestSavedSlider: {fileID: 0}
+  forestSavedFillImage: {fileID: 0}
+  forestSavedProgressLabel: {fileID: 0}
+  progressBarSize: {x: 260, y: 22}
+  progressBarScreenOffset: {x: 15, y: -58}
+  progressBarOffsetFromScoreText: {x: 0, y: -30}
+  progressBarEmptyColor: {r: 0.75, g: 0.08, b: 0.05, a: 0.85}
+  progressBarFillColor: {r: 0.2, g: 0.75, b: 0.35, a: 1}
+  progressBarTextColor: {r: 1, g: 1, b: 1, a: 1}
+  logScoreChanges: 0
+--- !u!4 &2081092862
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2081092860}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 13.87268, y: -21.02169, z: 52.55466}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2135592715
 GameObject:
   m_ObjectHideFlags: 0
@@ -2303,3 +2397,4 @@ SceneRoots:
   - {fileID: 1285678570}
   - {fileID: 593039670}
   - {fileID: 1503057644}
+  - {fileID: 2081092862}

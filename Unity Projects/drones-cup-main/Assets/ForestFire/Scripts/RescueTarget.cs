@@ -40,6 +40,7 @@ public class RescueTarget : MonoBehaviour
     public Vector3 RescueWorldPosition => transform.position;
     public bool CanBeRescued => !hasBeenRemoved;
 
+    public static event System.Action<RescueTarget> TargetLostToFire;
     public event System.Action<RescueTarget> RescueCompleted;
 
     private Vector3 prefabLocalScale;
@@ -352,9 +353,15 @@ public class RescueTarget : MonoBehaviour
 
     private void RemoveTarget()
     {
+        if (hasBeenRemoved)
+        {
+            return;
+        }
+
         hasBeenRemoved = true;
         isBeingRescued = false;
         RescueCompleted = null;
+        TargetLostToFire?.Invoke(this);
 
         if (Application.isPlaying)
         {

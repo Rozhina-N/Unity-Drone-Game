@@ -6,6 +6,8 @@ public class FlammableTree : MonoBehaviour
     private const string ColorProperty = "_Color";
     private static readonly System.Collections.Generic.List<FlammableTree> RegisteredTreesInternal = new System.Collections.Generic.List<FlammableTree>();
 
+    public static event System.Action<FlammableTree> TreeBurnt;
+
     private enum BurnState
     {
         Normal,
@@ -304,6 +306,8 @@ public class FlammableTree : MonoBehaviour
             activeFireVisual.ResetVisualState();
             activeFireVisual.SetVisible(false);
         }
+
+        TreeBurnt?.Invoke(this);
     }
 
     private void ResetTreeState()

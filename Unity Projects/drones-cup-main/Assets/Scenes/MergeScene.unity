@@ -1652,7 +1652,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 9054791171994244081, guid: 04e41fc9b03734c469fa8328b5ac569f, type: 3}
       propertyPath: m_Name
-      value: PlayerDrone
+      value: RescueDrone
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 4178966963737780314, guid: 04e41fc9b03734c469fa8328b5ac569f, type: 3}
@@ -1706,7 +1706,11 @@ MonoBehaviour:
   minimumHeightAboveTarget: 0.5
   maximumHeightAboveTarget: 5
   rescueCarryLimit: 5
-  rescueDropOffAreas: []
+  rescueDropOffAreas:
+  - {fileID: 214551514}
+  - {fileID: 775173899}
+  - {fileID: 1902468888}
+  - {fileID: 320741941}
   rescueDropOffAreaNames:
   - DroneLandpadRescue1
   - DroneLandpadRescue2

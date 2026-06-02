@@ -17,7 +17,7 @@ public class RescueCapacityBar : MonoBehaviour
     [SerializeField] private Text fullText;
 
     [Header("Layout")]
-    [SerializeField] [Min(0f)] private float verticalOffset = 4f;
+    [SerializeField] private Vector3 positionOffset = new Vector3(0f, 4f, 0f);
     [SerializeField] private Vector2 barSize = new Vector2(160f, 20f);
     [SerializeField] [Min(0.0001f)] private float worldScale = 0.01f;
 
@@ -72,7 +72,7 @@ public class RescueCapacityBar : MonoBehaviour
         }
 
         Transform canvasTransform = worldCanvas.transform;
-        canvasTransform.position = transform.position + Vector3.up * verticalOffset;
+        canvasTransform.position = transform.position + positionOffset;
         canvasTransform.localScale = Vector3.one * worldScale;
 
         if (targetCamera != null)
@@ -321,7 +321,6 @@ public class RescueCapacityBar : MonoBehaviour
         barSize.x = Mathf.Max(1f, barSize.x);
         barSize.y = Mathf.Max(1f, barSize.y);
         worldScale = Mathf.Max(0.0001f, worldScale);
-        verticalOffset = Mathf.Max(0f, verticalOffset);
 
         ConfigureCanvasRect();
         ConfigureBackgroundRect();

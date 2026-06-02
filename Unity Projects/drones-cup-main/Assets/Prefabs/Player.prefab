@@ -487,7 +487,6 @@ GameObject:
   - component: {fileID: 522897358929220988}
   - component: {fileID: 4717889769461006847}
   - component: {fileID: -5370164750199992629}
-  - component: {fileID: 6335148327460195801}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -830,30 +829,3 @@ MonoBehaviour:
   useDropOffHeightCheck: 1
   dropOffHeightTolerance: 2
   dropOffSecondsPerPerson: 3
---- !u!114 &6335148327460195801
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8611352695332904009}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d94112d9b2d34260a30c2c3e9f06ec88, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RescueCapacityBar
-  firefighterInteraction: {fileID: 0}
-  worldCanvas: {fileID: 0}
-  backgroundImage: {fileID: 0}
-  fillImage: {fileID: 0}
-  fullText: {fileID: 0}
-  verticalOffset: 4
-  barSize: {x: 160, y: 20}
-  worldScale: 0.01
-  normalFillColor: {r: 0.25, g: 0.75, b: 1, a: 1}
-  fullFillColor: {r: 1, g: 0.85, b: 0.15, a: 1}
-  backgroundColor: {r: 0, g: 0, b: 0, a: 0.65}
-  fullTextColor: {r: 1, g: 1, b: 1, a: 1}
-  hideWhenEmpty: 0
-  showFullText: 1
-  autoCreateUiIfMissing: 1

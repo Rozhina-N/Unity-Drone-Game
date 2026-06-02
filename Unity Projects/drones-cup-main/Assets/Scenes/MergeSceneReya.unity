@@ -1805,8 +1805,8 @@ MonoBehaviour:
   backgroundImage: {fileID: 0}
   fillImage: {fileID: 0}
   fullText: {fileID: 0}
-  verticalOffset: 5
-  barSize: {x: 250, y: 50}
+  positionOffset: {x: 0, y: 1.5, z: 2}
+  barSize: {x: 300, y: 50}
   worldScale: 0.01
   normalFillColor: {r: 0.25, g: 0.75, b: 1, a: 1}
   fullFillColor: {r: 1, g: 0, b: 0, a: 1}

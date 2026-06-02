@@ -1677,6 +1677,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 9054791171994244081, guid: 04e41fc9b03734c469fa8328b5ac569f, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1587807961}
+    - targetCorrespondingSourceObject: {fileID: 9054791171994244081, guid: 04e41fc9b03734c469fa8328b5ac569f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1587807966}
   m_SourcePrefab: {fileID: 100100000, guid: 04e41fc9b03734c469fa8328b5ac569f, type: 3}
 --- !u!1 &1587807960 stripped
 GameObject:
@@ -1785,6 +1788,33 @@ CharacterController:
   m_SkinWidth: 0.08
   m_MinMoveDistance: 0.001
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1587807966
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1587807960}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d94112d9b2d34260a30c2c3e9f06ec88, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RescueCapacityBar
+  firefighterInteraction: {fileID: 1587807961}
+  worldCanvas: {fileID: 0}
+  backgroundImage: {fileID: 0}
+  fillImage: {fileID: 0}
+  fullText: {fileID: 0}
+  verticalOffset: 5
+  barSize: {x: 250, y: 50}
+  worldScale: 0.01
+  normalFillColor: {r: 0.25, g: 0.75, b: 1, a: 1}
+  fullFillColor: {r: 1, g: 0, b: 0, a: 1}
+  backgroundColor: {r: 0, g: 0, b: 0, a: 0.65}
+  fullTextColor: {r: 1, g: 1, b: 1, a: 1}
+  hideWhenEmpty: 0
+  showFullText: 1
+  autoCreateUiIfMissing: 1
 --- !u!1 &1706594993
 GameObject:
   m_ObjectHideFlags: 0

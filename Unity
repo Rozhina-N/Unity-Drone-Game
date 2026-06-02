@@ -1,0 +1,20 @@
+[Licensing::Module] Trying to connect to existing licensing client channel...
+Built from '6000.2/staging' branch; Version is '6000.2.9f1 (e0c4e791ab71) revision 14730471'; Using compiler version '194234433'; Build Type 'Release'
+OS: 'Windows 11  (10.0.26200) 64bit Core' Language: 'en' Physical Memory: 32507 MB
+BatchMode: 1, IsHumanControllingUs: 0, StartBugReporterOnCrash: 0, Is64bit: 1
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-roosn" at "2026-06-02T10:23:42.8377474Z"
+Date: 2026-06-02T10:23:42Z
+
+COMMAND LINE ARGUMENTS:
+C:\Program Files\Unity\Hub\Editor\6000.2.9f1\Editor\Unity.exe
+-batchmode
+-nographics
+-quit
+-projectPath
+U:\Unity-Drone-Game\Unity
+Projects\drones-cup-main
+-logFile
+U:\Unity-Drone-Game\Unity
+Projects\drones-cup-main\Logs\RescueCapacityBarValidation.log
+Couldn't set project path to: U:/Unity-Drone-Game/Unity Projects/drones-cup-main/U:/Unity-Drone-Game/Unity
+Exiting without the bug reporter. Application will terminate with return code 1

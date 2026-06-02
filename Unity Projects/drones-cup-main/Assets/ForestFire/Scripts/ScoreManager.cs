@@ -32,7 +32,7 @@ public class ScoreManager : MonoBehaviour
     [SerializeField] private Vector2 progressBarSize = new Vector2(260f, 22f);
     [SerializeField] private Vector2 progressBarScreenOffset = new Vector2(20f, -58f);
     [SerializeField] private Vector2 progressBarOffsetFromScoreText = new Vector2(0f, -30f);
-    [SerializeField] private Color progressBarBackgroundColor = new Color(0f, 0f, 0f, 0.55f);
+    [SerializeField] private Color progressBarEmptyColor = new Color(0.75f, 0.08f, 0.05f, 0.85f);
     [SerializeField] private Color progressBarFillColor = new Color(0.2f, 0.75f, 0.35f, 1f);
     [SerializeField] private Color progressBarTextColor = Color.white;
 
@@ -171,16 +171,21 @@ public class ScoreManager : MonoBehaviour
             forestSavedSlider.minValue = 0f;
             forestSavedSlider.maxValue = 1f;
             forestSavedSlider.interactable = false;
+            if (forestSavedSlider.fillRect == null && forestSavedFillImage != null)
+            {
+                forestSavedSlider.fillRect = forestSavedFillImage.rectTransform;
+            }
+
             forestSavedSlider.value = forestSaved;
         }
 
         if (forestSavedFillImage != null)
         {
-            forestSavedFillImage.type = Image.Type.Filled;
-            forestSavedFillImage.fillMethod = Image.FillMethod.Horizontal;
-            forestSavedFillImage.fillOrigin = 0;
             forestSavedFillImage.color = progressBarFillColor;
             forestSavedFillImage.fillAmount = forestSaved;
+
+            bool sliderControlsFill = forestSavedSlider != null && forestSavedSlider.fillRect == forestSavedFillImage.rectTransform;
+            UpdateFillRectWidth(forestSavedFillImage.rectTransform, sliderControlsFill ? 1f : forestSaved);
         }
 
         if (forestSavedProgressLabel != null)
@@ -192,8 +197,19 @@ public class ScoreManager : MonoBehaviour
 
         if (progressBarRoot != null && progressBarRoot.TryGetComponent(out Image backgroundImage))
         {
-            backgroundImage.color = progressBarBackgroundColor;
+            backgroundImage.color = progressBarEmptyColor;
         }
+    }
+
+    private void UpdateFillRectWidth(RectTransform fillRect, float forestSaved)
+    {
+        if (fillRect == null)
+        {
+            return;
+        }
+
+        fillRect.pivot = new Vector2(0f, fillRect.pivot.y);
+        fillRect.localScale = new Vector3(forestSaved, fillRect.localScale.y, fillRect.localScale.z);
     }
 
     private GameObject GetProgressBarRoot()
@@ -250,21 +266,29 @@ public class ScoreManager : MonoBehaviour
         ConfigureProgressBarRect(rootRect);
 
         Image backgroundImage = barRoot.AddComponent<Image>();
-        backgroundImage.color = progressBarBackgroundColor;
+        backgroundImage.color = progressBarEmptyColor;
 
         GameObject fillObject = new GameObject("Fill");
         RectTransform fillRect = fillObject.AddComponent<RectTransform>();
         fillObject.transform.SetParent(barRoot.transform, false);
         fillRect.anchorMin = Vector2.zero;
         fillRect.anchorMax = Vector2.one;
+        fillRect.pivot = new Vector2(0f, 0.5f);
         fillRect.offsetMin = new Vector2(3f, 3f);
         fillRect.offsetMax = new Vector2(-3f, -3f);
 
         forestSavedFillImage = fillObject.AddComponent<Image>();
         forestSavedFillImage.color = progressBarFillColor;
-        forestSavedFillImage.type = Image.Type.Filled;
-        forestSavedFillImage.fillMethod = Image.FillMethod.Horizontal;
-        forestSavedFillImage.fillOrigin = 0;
+        forestSavedFillImage.type = Image.Type.Simple;
+
+        forestSavedSlider = barRoot.AddComponent<Slider>();
+        forestSavedSlider.transition = Selectable.Transition.None;
+        forestSavedSlider.interactable = false;
+        forestSavedSlider.minValue = 0f;
+        forestSavedSlider.maxValue = 1f;
+        forestSavedSlider.value = GetForestSaved01();
+        forestSavedSlider.fillRect = fillRect;
+        forestSavedSlider.targetGraphic = forestSavedFillImage;
 
         GameObject labelObject = new GameObject("Label");
         RectTransform labelRect = labelObject.AddComponent<RectTransform>();

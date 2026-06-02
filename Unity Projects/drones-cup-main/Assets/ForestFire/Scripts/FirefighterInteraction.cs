@@ -16,6 +16,26 @@ public class FirefighterInteraction : MonoBehaviour
     [SerializeField] [Min(0f)] private float minimumHeightAboveFire = 0.5f;
     [SerializeField] [Min(0f)] private float maximumHeightAboveFire = 5f;
 
+    [Header("Water Capacity")]
+    [SerializeField] private bool useWaterCapacity = true;
+    [SerializeField] [Min(0.01f)] private float maxWaterAmount = 100f;
+    [SerializeField] [Min(0f)] private float startingWaterAmount = 100f;
+    [SerializeField] [Min(0f)] private float waterUsePerSecondPerFire = 20f;
+
+    [Header("Water Refill Areas")]
+    [SerializeField] private BoxCollider[] waterRefillAreas;
+    [SerializeField]
+    private string[] waterRefillAreaNames =
+    {
+        "DroneLandpadFire1",
+        "DroneLandpadFire2",
+        "Drone Landpad Fire 1",
+        "Drone Landpad Fire 2"
+    };
+    [SerializeField] private bool useWaterRefillHeightCheck = false;
+    [SerializeField] [Min(0f)] private float waterRefillHeightTolerance = 5f;
+    [SerializeField] [Min(0f)] private float waterRefillPerSecond = 50f;
+
     [Header("Rescue Cylinder")]
     [SerializeField] [Min(0f)] private float rescueRange = 4f;
     [SerializeField] [Min(0f)] private float minimumHeightAboveTarget = 0.5f;
@@ -46,10 +66,50 @@ public class FirefighterInteraction : MonoBehaviour
     private readonly List<RescueTarget> stopRescueBuffer = new List<RescueTarget>();
     private readonly List<RescueTarget> carriedRescueTargets = new List<RescueTarget>();
     private float dropOffTimer;
+    private float currentWaterAmount;
+    private bool waterInitialized;
     private bool isInteractHeld;
 
     public int CarriedRescueCount => carriedRescueTargets.Count;
     public int RescueCarryLimit => rescueCarryLimit;
+    public bool UsesWaterCapacity => useWaterCapacity;
+    public float MaxWaterAmount => maxWaterAmount;
+    public bool IsWaterEmpty
+    {
+        get
+        {
+            EnsureWaterInitialized();
+            return useWaterCapacity && currentWaterAmount <= 0f;
+        }
+    }
+
+    public float CurrentWaterAmount
+    {
+        get
+        {
+            EnsureWaterInitialized();
+            return useWaterCapacity ? currentWaterAmount : maxWaterAmount;
+        }
+    }
+
+    public float WaterFillAmount
+    {
+        get
+        {
+            EnsureWaterInitialized();
+            if (!useWaterCapacity)
+            {
+                return 1f;
+            }
+
+            return maxWaterAmount > 0f ? Mathf.Clamp01(currentWaterAmount / maxWaterAmount) : 0f;
+        }
+    }
+
+    private void Awake()
+    {
+        InitializeWater();
+    }
 
     public void Extinguish(InputAction.CallbackContext context)
     {
@@ -69,6 +129,8 @@ public class FirefighterInteraction : MonoBehaviour
 
     private void Update()
     {
+        EnsureWaterInitialized();
+        UpdateWaterRefill();
         UpdateDropOff();
 
         if (!isInteractHeld)
@@ -78,7 +140,21 @@ public class FirefighterInteraction : MonoBehaviour
             return;
         }
 
-        UpdateExtinguishTargets();
+        int extinguishingTargetCount = 0;
+        if (CanExtinguishWithWater())
+        {
+            extinguishingTargetCount = UpdateExtinguishTargets();
+        }
+        else
+        {
+            ClearActiveTargets();
+        }
+
+        if (extinguishingTargetCount > 0)
+        {
+            ConsumeWater(waterUsePerSecondPerFire * extinguishingTargetCount * Time.deltaTime);
+        }
+
         UpdateRescueTargets();
     }
 
@@ -89,7 +165,7 @@ public class FirefighterInteraction : MonoBehaviour
         ClearActiveRescueTargets();
     }
 
-    private void UpdateExtinguishTargets()
+    private int UpdateExtinguishTargets()
     {
         frameTargets.Clear();
         FlammableTree[] allTrees = GetAllTrees();
@@ -142,6 +218,7 @@ public class FirefighterInteraction : MonoBehaviour
 
         activeTargets.Clear();
         activeTargets.UnionWith(frameTargets);
+        return frameTargets.Count;
     }
 
     private void UpdateRescueTargets()
@@ -227,6 +304,23 @@ public class FirefighterInteraction : MonoBehaviour
         UpdateTimedDropOff();
     }
 
+    private void UpdateWaterRefill()
+    {
+        if (!useWaterCapacity || waterRefillPerSecond <= 0f || currentWaterAmount >= maxWaterAmount)
+        {
+            return;
+        }
+
+        TryResolveDefaultWaterRefillAreas();
+
+        if (!IsInsideAnyWaterRefillArea(transform.position))
+        {
+            return;
+        }
+
+        AddWater(waterRefillPerSecond * Time.deltaTime);
+    }
+
     private void ClearActiveTargets()
     {
         foreach (FlammableTree tree in activeTargets)
@@ -294,21 +388,49 @@ public class FirefighterInteraction : MonoBehaviour
 
     private void DropOffOneCarriedTarget()
     {
-        for (int i = 0; i < carriedRescueTargets.Count; i++)
+        if (carriedRescueTargets.Count == 0)
         {
-            RescueTarget target = carriedRescueTargets[i];
-            carriedRescueTargets.RemoveAt(i);
-
-            if (target != null)
-            {
-                target.CompleteDropOff();
-            }
-
-            Debug.Log($"Dropped off 1 rescued target. Carrying {carriedRescueTargets.Count} / {rescueCarryLimit}.", this);
             return;
         }
 
-        carriedRescueTargets.Clear();
+        RescueTarget target = carriedRescueTargets[0];
+        carriedRescueTargets.RemoveAt(0);
+
+        if (target != null)
+        {
+            target.CompleteDropOff();
+        }
+
+        Debug.Log($"Dropped off 1 rescued target. Carrying {carriedRescueTargets.Count} / {rescueCarryLimit}.", this);
+    }
+
+    private bool CanExtinguishWithWater()
+    {
+        return !useWaterCapacity || currentWaterAmount > 0f;
+    }
+
+    private void ConsumeWater(float amount)
+    {
+        if (!useWaterCapacity || amount <= 0f)
+        {
+            return;
+        }
+
+        currentWaterAmount = Mathf.Max(0f, currentWaterAmount - amount);
+        if (currentWaterAmount <= 0f)
+        {
+            ClearActiveTargets();
+        }
+    }
+
+    private void AddWater(float amount)
+    {
+        if (!useWaterCapacity || amount <= 0f)
+        {
+            return;
+        }
+
+        currentWaterAmount = Mathf.Min(maxWaterAmount, currentWaterAmount + amount);
     }
 
     private FlammableTree[] GetAllTrees()
@@ -422,6 +544,37 @@ public class FirefighterInteraction : MonoBehaviour
         }
     }
 
+    private void TryResolveDefaultWaterRefillAreas()
+    {
+        if (HasAssignedWaterRefillAreas())
+        {
+            return;
+        }
+
+        List<BoxCollider> foundAreas = new List<BoxCollider>();
+        AddAssignedWaterRefillAreas(foundAreas);
+
+        BoxCollider[] allBoxColliders = FindObjectsByType<BoxCollider>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < allBoxColliders.Length; i++)
+        {
+            BoxCollider areaCollider = allBoxColliders[i];
+            if (areaCollider == null || !MatchesWaterRefillAreaName(areaCollider.transform))
+            {
+                continue;
+            }
+
+            if (!foundAreas.Contains(areaCollider))
+            {
+                foundAreas.Add(areaCollider);
+            }
+        }
+
+        if (foundAreas.Count > 0)
+        {
+            waterRefillAreas = foundAreas.ToArray();
+        }
+    }
+
     private bool HasAssignedDropOffAreas()
     {
         if (rescueDropOffAreas == null)
@@ -432,6 +585,24 @@ public class FirefighterInteraction : MonoBehaviour
         for (int i = 0; i < rescueDropOffAreas.Length; i++)
         {
             if (rescueDropOffAreas[i] != null)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool HasAssignedWaterRefillAreas()
+    {
+        if (waterRefillAreas == null)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < waterRefillAreas.Length; i++)
+        {
+            if (waterRefillAreas[i] != null)
             {
                 return true;
             }
@@ -457,6 +628,23 @@ public class FirefighterInteraction : MonoBehaviour
         }
     }
 
+    private void AddAssignedWaterRefillAreas(List<BoxCollider> foundAreas)
+    {
+        if (waterRefillAreas == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < waterRefillAreas.Length; i++)
+        {
+            BoxCollider area = waterRefillAreas[i];
+            if (area != null && !foundAreas.Contains(area))
+            {
+                foundAreas.Add(area);
+            }
+        }
+    }
+
     private bool MatchesDropOffAreaName(Transform areaTransform)
     {
         if (areaTransform == null || rescueDropOffAreaNames == null)
@@ -468,6 +656,31 @@ public class FirefighterInteraction : MonoBehaviour
         for (int i = 0; i < rescueDropOffAreaNames.Length; i++)
         {
             string configuredName = NormalizeDropOffName(rescueDropOffAreaNames[i]);
+            if (string.IsNullOrEmpty(configuredName))
+            {
+                continue;
+            }
+
+            if (objectName == configuredName)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool MatchesWaterRefillAreaName(Transform areaTransform)
+    {
+        if (areaTransform == null || waterRefillAreaNames == null)
+        {
+            return false;
+        }
+
+        string objectName = NormalizeDropOffName(areaTransform.name);
+        for (int i = 0; i < waterRefillAreaNames.Length; i++)
+        {
+            string configuredName = NormalizeDropOffName(waterRefillAreaNames[i]);
             if (string.IsNullOrEmpty(configuredName))
             {
                 continue;
@@ -510,6 +723,24 @@ public class FirefighterInteraction : MonoBehaviour
         return false;
     }
 
+    private bool IsInsideAnyWaterRefillArea(Vector3 worldPosition)
+    {
+        if (waterRefillAreas == null)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < waterRefillAreas.Length; i++)
+        {
+            if (IsInsideWaterRefillArea(worldPosition, waterRefillAreas[i]))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private bool IsInsideDropOffArea(Vector3 worldPosition, BoxCollider dropOffArea)
     {
         if (dropOffArea == null)
@@ -537,13 +768,62 @@ public class FirefighterInteraction : MonoBehaviour
         return Mathf.Abs(worldPosition.y - bounds.center.y) <= dropOffHeightTolerance;
     }
 
+    private bool IsInsideWaterRefillArea(Vector3 worldPosition, BoxCollider refillArea)
+    {
+        if (refillArea == null)
+        {
+            return false;
+        }
+
+        Bounds bounds = refillArea.bounds;
+        bool insideFlatArea =
+            worldPosition.x >= bounds.min.x &&
+            worldPosition.x <= bounds.max.x &&
+            worldPosition.z >= bounds.min.z &&
+            worldPosition.z <= bounds.max.z;
+
+        if (!insideFlatArea)
+        {
+            return false;
+        }
+
+        if (!useWaterRefillHeightCheck)
+        {
+            return true;
+        }
+
+        return Mathf.Abs(worldPosition.y - bounds.center.y) <= waterRefillHeightTolerance;
+    }
+
     private static Vector2 ToFlatPosition(Vector3 worldPosition)
     {
         return new Vector2(worldPosition.x, worldPosition.z);
     }
 
+    private void EnsureWaterInitialized()
+    {
+        if (!waterInitialized)
+        {
+            InitializeWater();
+        }
+    }
+
+    private void InitializeWater()
+    {
+        maxWaterAmount = Mathf.Max(0.01f, maxWaterAmount);
+        startingWaterAmount = Mathf.Clamp(startingWaterAmount, 0f, maxWaterAmount);
+        currentWaterAmount = startingWaterAmount;
+        waterInitialized = true;
+    }
+
     private void OnValidate()
     {
+        maxWaterAmount = Mathf.Max(0.01f, maxWaterAmount);
+        startingWaterAmount = Mathf.Clamp(startingWaterAmount, 0f, maxWaterAmount);
+        waterUsePerSecondPerFire = Mathf.Max(0f, waterUsePerSecondPerFire);
+        waterRefillHeightTolerance = Mathf.Max(0f, waterRefillHeightTolerance);
+        waterRefillPerSecond = Mathf.Max(0f, waterRefillPerSecond);
+
         if (maximumHeightAboveFire < minimumHeightAboveFire)
         {
             maximumHeightAboveFire = minimumHeightAboveFire;

@@ -487,6 +487,7 @@ GameObject:
   - component: {fileID: 522897358929220988}
   - component: {fileID: 4717889769461006847}
   - component: {fileID: -5370164750199992629}
+  - component: {fileID: 6371085720832508404}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -816,6 +817,19 @@ MonoBehaviour:
   cylinderRadius: 8
   minimumHeightAboveFire: 0.5
   maximumHeightAboveFire: 5
+  useWaterCapacity: 1
+  maxWaterAmount: 100
+  startingWaterAmount: 100
+  waterUsePerSecondPerFire: 20
+  waterRefillAreas: []
+  waterRefillAreaNames:
+  - DroneLandpadFire1
+  - DroneLandpadFire2
+  - Drone Landpad Fire 1
+  - Drone Landpad Fire 2
+  useWaterRefillHeightCheck: 0
+  waterRefillHeightTolerance: 5
+  waterRefillPerSecond: 50
   rescueRange: 4
   minimumHeightAboveTarget: 0.5
   maximumHeightAboveTarget: 5
@@ -829,3 +843,33 @@ MonoBehaviour:
   useDropOffHeightCheck: 1
   dropOffHeightTolerance: 2
   dropOffSecondsPerPerson: 3
+--- !u!114 &6371085720832508404
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8611352695332904009}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8bc2a0f7c95a4fa4a9b3e846d07a1ed4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WaterCapacityBar
+  firefighterInteraction: {fileID: -5370164750199992629}
+  worldCanvas: {fileID: 0}
+  backgroundImage: {fileID: 0}
+  fillImage: {fileID: 0}
+  emptyText: {fileID: 0}
+  positionOffset: {x: 0, y: 4.35, z: 0}
+  barSize: {x: 160, y: 20}
+  worldScale: 0.01
+  normalFillColor: {r: 0.1, g: 0.55, b: 1, a: 1}
+  lowFillColor: {r: 0.95, g: 0.75, b: 0.15, a: 1}
+  emptyFillColor: {r: 1, g: 0.15, b: 0.1, a: 1}
+  backgroundColor: {r: 0, g: 0, b: 0, a: 0.65}
+  emptyTextColor: {r: 1, g: 1, b: 1, a: 1}
+  hideWhenFull: 0
+  showEmptyText: 1
+  lowWaterThreshold: 0.25
+  emptyTextFontSize: 28
+  autoCreateUiIfMissing: 1

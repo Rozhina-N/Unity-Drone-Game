@@ -8,56 +8,65 @@ using UnityEngine.InputSystem.Users;
 public class PlayerSetup : MonoBehaviour
 {
     [SerializeField] private Renderer playerRenderer;
-    
+
     private PlayerInput playerInput;
 
-    public Color PlayerColor;
-    
-    void Awake()
+    public Color PlayerColor { get; private set; }
+
+    private void Awake()
     {
         playerInput = GetComponent<PlayerInput>();
+
+        // IMPORTANT:
+        // Prevent Unity from switching devices automatically (keeps control stable)
         playerInput.neverAutoSwitchControlSchemes = true;
     }
 
     public void InitializePlayer(Color color, string controlScheme, InputDevice device)
     {
+        PlayerColor = color;
+
+        // 🔥 Ensure no leftover device bindings
         playerInput.user.UnpairDevices();
-        
-        InputUser.PerformPairingWithDevice(device, user: playerInput.user);
-        
+
+        // 🔥 Pair this specific device to THIS player
+        InputUser.PerformPairingWithDevice(device, playerInput.user);
+
+        // 🔥 Activate correct control scheme for this player
         playerInput.SwitchCurrentControlScheme(controlScheme, device);
-        
+
+        // Ensure input is active
         if (!playerInput.inputIsActive)
             playerInput.ActivateInput();
-        
-        PlayerColor = color;
-        
-        // playerInput.SwitchCurrentControlScheme(controlScheme, device);
 
+        // Visual setup
         if (playerRenderer != null)
         {
             playerRenderer.material.color = color;
         }
-        
+
         UpdateDualSenseLightBar(device, color);
     }
 
     public void DisablePlayer()
     {
         playerInput.DeactivateInput();
+
+        // Optional cleanup (prevents ghost input if reused from pool)
+        playerInput.user.UnpairDevices();
     }
 
     private void UpdateDualSenseLightBar(InputDevice device, Color color)
     {
-        if (device is DualSenseGamepadHID ps5Controller)
+        if (device is DualSenseGamepadHID dualSense)
         {
             try
             {
-                ps5Controller.SetLightBarColor(color);
+                dualSense.SetLightBarColor(color);
             }
-            catch (Exception error)
+            catch (Exception e)
             {
-                Debug.LogWarning($"Failed to set light bar: {error.Message}");
+                Debug.LogWarning($"DualSense lightbar error: {e.Message}");
             }
         }
     }

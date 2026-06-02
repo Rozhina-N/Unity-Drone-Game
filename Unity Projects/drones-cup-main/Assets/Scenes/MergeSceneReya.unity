@@ -1744,6 +1744,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 9054791171994244081, guid: 04e41fc9b03734c469fa8328b5ac569f, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1587807966}
+    - targetCorrespondingSourceObject: {fileID: 9054791171994244081, guid: 04e41fc9b03734c469fa8328b5ac569f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1587807967}
   m_SourcePrefab: {fileID: 100100000, guid: 04e41fc9b03734c469fa8328b5ac569f, type: 3}
 --- !u!1 &1587807960 stripped
 GameObject:
@@ -1769,6 +1772,21 @@ MonoBehaviour:
   cylinderRadius: 8
   minimumHeightAboveFire: 0.5
   maximumHeightAboveFire: 5
+  useWaterCapacity: 1
+  maxWaterAmount: 200
+  startingWaterAmount: 200
+  waterUsePerSecondPerFire: 20
+  waterRefillAreas:
+  - {fileID: 1902468888}
+  - {fileID: 320741941}
+  waterRefillAreaNames:
+  - DroneLandpadFire1
+  - DroneLandpadFire2
+  - Drone Landpad Fire 1
+  - Drone Landpad Fire 2
+  useWaterRefillHeightCheck: 0
+  waterRefillHeightTolerance: 5
+  waterRefillPerSecond: 50
   rescueRange: 4
   minimumHeightAboveTarget: 0.5
   maximumHeightAboveTarget: 5
@@ -1776,8 +1794,6 @@ MonoBehaviour:
   rescueDropOffAreas:
   - {fileID: 214551514}
   - {fileID: 775173899}
-  - {fileID: 1902468888}
-  - {fileID: 320741941}
   rescueDropOffAreaNames:
   - DroneLandpadRescue1
   - DroneLandpadRescue2
@@ -1879,6 +1895,36 @@ MonoBehaviour:
   hideWhenEmpty: 0
   showFullText: 1
   fullTextFontSize: 55
+  autoCreateUiIfMissing: 1
+--- !u!114 &1587807967
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1587807960}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8bc2a0f7c95a4fa4a9b3e846d07a1ed4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WaterCapacityBar
+  firefighterInteraction: {fileID: 1587807961}
+  worldCanvas: {fileID: 0}
+  backgroundImage: {fileID: 0}
+  fillImage: {fileID: 0}
+  emptyText: {fileID: 0}
+  positionOffset: {x: 0, y: 1.5, z: 5}
+  barSize: {x: 350, y: 75}
+  worldScale: 0.01
+  normalFillColor: {r: 0.1, g: 0.55, b: 1, a: 1}
+  lowFillColor: {r: 0.95, g: 0.75, b: 0.15, a: 1}
+  emptyFillColor: {r: 1, g: 0.15, b: 0.1, a: 1}
+  backgroundColor: {r: 0, g: 0, b: 0, a: 0.65}
+  emptyTextColor: {r: 1, g: 1, b: 1, a: 1}
+  hideWhenFull: 0
+  showEmptyText: 1
+  lowWaterThreshold: 0.25
+  emptyTextFontSize: 55
   autoCreateUiIfMissing: 1
 --- !u!1 &1706594993
 GameObject:

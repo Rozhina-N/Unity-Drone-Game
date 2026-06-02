@@ -1748,6 +1748,7 @@ MonoBehaviour:
   fullTextColor: {r: 1, g: 1, b: 1, a: 1}
   hideWhenEmpty: 0
   showFullText: 1
+  fullTextFontSize: 28
   autoCreateUiIfMissing: 1
 --- !u!114 &1587807962
 MonoBehaviour:

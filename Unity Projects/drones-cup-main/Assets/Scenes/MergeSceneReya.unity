@@ -1878,6 +1878,7 @@ MonoBehaviour:
   fullTextColor: {r: 1, g: 1, b: 1, a: 1}
   hideWhenEmpty: 0
   showFullText: 1
+  fullTextFontSize: 55
   autoCreateUiIfMissing: 1
 --- !u!1 &1706594993
 GameObject:

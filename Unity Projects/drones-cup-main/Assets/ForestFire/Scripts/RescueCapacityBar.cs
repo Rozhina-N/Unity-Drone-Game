@@ -30,6 +30,7 @@ public class RescueCapacityBar : MonoBehaviour
     [Header("Display")]
     [SerializeField] private bool hideWhenEmpty;
     [SerializeField] private bool showFullText = true;
+    [SerializeField] [Min(1)] private int fullTextFontSize = 28;
     [SerializeField] private bool autoCreateUiIfMissing = true;
 
     private Camera targetCamera;
@@ -155,6 +156,7 @@ public class RescueCapacityBar : MonoBehaviour
             fullText = FindOrCreateFullText(textParent);
         }
 
+        ConfigureFullText();
         ConfigureColors(false);
     }
 
@@ -209,22 +211,6 @@ public class RescueCapacityBar : MonoBehaviour
 
         Text text = textObject.GetComponent<Text>();
         text.text = "FULL";
-        text.alignment = TextAnchor.MiddleCenter;
-        text.font = GetDefaultFont();
-        text.fontStyle = FontStyle.Bold;
-        text.fontSize = 14;
-        text.resizeTextForBestFit = true;
-        text.resizeTextMinSize = 8;
-        text.resizeTextMaxSize = 16;
-        text.raycastTarget = false;
-        text.color = fullTextColor;
-
-        RectTransform textRect = text.rectTransform;
-        textRect.anchorMin = Vector2.zero;
-        textRect.anchorMax = Vector2.one;
-        textRect.offsetMin = Vector2.zero;
-        textRect.offsetMax = Vector2.zero;
-
         return text;
     }
 
@@ -287,7 +273,7 @@ public class RescueCapacityBar : MonoBehaviour
         if (fullText != null)
         {
             fullText.text = "FULL";
-            fullText.color = fullTextColor;
+            ConfigureFullText();
             fullText.gameObject.SetActive(shouldShow && showFullText && isFull);
         }
     }
@@ -303,6 +289,31 @@ public class RescueCapacityBar : MonoBehaviour
         {
             fillImage.color = isFull ? fullFillColor : normalFillColor;
         }
+    }
+
+    private void ConfigureFullText()
+    {
+        if (fullText == null)
+        {
+            return;
+        }
+
+        fullText.text = "FULL";
+        fullText.alignment = TextAnchor.MiddleCenter;
+        fullText.font = fullText.font != null ? fullText.font : GetDefaultFont();
+        fullText.fontStyle = FontStyle.Bold;
+        fullText.fontSize = fullTextFontSize;
+        fullText.resizeTextForBestFit = true;
+        fullText.resizeTextMinSize = Mathf.Min(8, fullTextFontSize);
+        fullText.resizeTextMaxSize = fullTextFontSize;
+        fullText.raycastTarget = false;
+        fullText.color = fullTextColor;
+
+        RectTransform textRect = fullText.rectTransform;
+        textRect.anchorMin = Vector2.zero;
+        textRect.anchorMax = Vector2.one;
+        textRect.offsetMin = Vector2.zero;
+        textRect.offsetMax = Vector2.zero;
     }
 
     private Font GetDefaultFont()
@@ -321,9 +332,6 @@ public class RescueCapacityBar : MonoBehaviour
         barSize.x = Mathf.Max(1f, barSize.x);
         barSize.y = Mathf.Max(1f, barSize.y);
         worldScale = Mathf.Max(0.0001f, worldScale);
-
-        ConfigureCanvasRect();
-        ConfigureBackgroundRect();
-        UpdateBar();
+        fullTextFontSize = Mathf.Max(1, fullTextFontSize);
     }
 }

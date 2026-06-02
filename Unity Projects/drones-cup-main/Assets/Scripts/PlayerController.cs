@@ -10,39 +10,48 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float verticalSpeed = 5f;
 
     [Header("Rotation Settings")]
-    [SerializeField] private float turnSpeed = 720f; // Degrees per second
+    [SerializeField] private float turnSpeed = 720f;
 
     private CharacterController controller;
     private PlayerInput playerInput;
+
+    private InputAction moveAction;
     private InputAction ascendAction;
     private InputAction descendAction;
-    private Vector2 moveInput;
 
     void Awake()
     {
         controller = GetComponent<CharacterController>();
         playerInput = GetComponent<PlayerInput>();
-        CacheFlightActions();
+
+        CacheActions();
     }
 
     void OnEnable()
     {
-        CacheFlightActions();
+        CacheActions();
     }
 
-    public void Move(InputAction.CallbackContext context)
+    void CacheActions()
     {
-        moveInput = context.ReadValue<Vector2>();
+        if (playerInput == null || playerInput.actions == null)
+            return;
+
+        moveAction = playerInput.actions["Move"];
+        ascendAction = playerInput.actions["Ascend"];
+        descendAction = playerInput.actions["Descend"];
     }
 
     void Update()
     {
-        if (ascendAction == null || descendAction == null)
-        {
-            CacheFlightActions();
-        }
-        
+        if (moveAction == null)
+            CacheActions();
+
+        // --- HORIZONTAL MOVEMENT ---
+        Vector2 moveInput = moveAction != null ? moveAction.ReadValue<Vector2>() : Vector2.zero;
+
         Vector3 horizontalMove = new Vector3(moveInput.x, 0f, moveInput.y);
+
         if (horizontalMove != Vector3.zero)
         {
             Quaternion targetRotation = Quaternion.LookRotation(horizontalMove);
@@ -53,35 +62,20 @@ public class PlayerController : MonoBehaviour
             );
         }
 
+        // --- VERTICAL MOVEMENT ---
         float verticalInput = 0f;
 
         if (ascendAction != null && ascendAction.IsPressed())
-        {
             verticalInput += 1f;
-        }
 
         if (descendAction != null && descendAction.IsPressed())
-        {
             verticalInput -= 1f;
-        }
 
-        Vector3 move = (horizontalMove * speed) + (Vector3.up * (verticalInput * verticalSpeed));
+        // --- APPLY MOVEMENT ---
+        Vector3 move =
+            (horizontalMove * speed) +
+            (Vector3.up * (verticalInput * verticalSpeed));
+
         controller.Move(move * Time.deltaTime);
-    }
-
-    private void CacheFlightActions()
-    {
-        if (playerInput == null)
-        {
-            playerInput = GetComponent<PlayerInput>();
-        }
-
-        if (playerInput == null || playerInput.actions == null)
-        {
-            return;
-        }
-
-        ascendAction = playerInput.actions.FindAction("Ascend");
-        descendAction = playerInput.actions.FindAction("Descend");
     }
 }

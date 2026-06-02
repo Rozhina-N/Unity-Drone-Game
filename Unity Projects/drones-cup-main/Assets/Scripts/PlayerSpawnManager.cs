@@ -15,7 +15,7 @@ public class PlayerSpawnManager : MonoBehaviour
     [SerializeField] private bool autoTakeoffBoundDrone = true;
     [SerializeField] private float autoTakeoffDuration = 2f;
 
-    private int maxPlayers = 8;
+    private int maxPlayers = 4;
     
     private readonly Color[] playerColors =
     {
@@ -27,15 +27,16 @@ public class PlayerSpawnManager : MonoBehaviour
     private readonly HashSet<GameObject> activePlayers = new HashSet<GameObject>();
     
     private Dictionary<GameObject, Color> playerColorMap = new Dictionary<GameObject, Color>();
-    private WSMirror wsMirror;
-   
+    private WSMirrorOLD wsMirror;
+    private WSHostOLD wSHost;   
     private int nextSpawnIndex;
     
     void Awake()
     {
         Instance = this;
         InitializePool();
-        wsMirror = FindObjectOfType<WSMirror>();
+        wsMirror = FindObjectOfType<WSMirrorOLD>();
+        wSHost = FindObjectOfType<WSHostOLD>();
     }
 
     private void InitializePool()
@@ -64,21 +65,31 @@ public class PlayerSpawnManager : MonoBehaviour
             Debug.LogWarning("Max players reached!");
             return;
         }
-        
+
         GameObject player = inactivePool.Dequeue();
-        
+
         Transform spawnPoint = spawnPoints[nextSpawnIndex % spawnPoints.Length];
         player.transform.SetPositionAndRotation(spawnPoint.position, spawnPoint.rotation);
         nextSpawnIndex++;
-        
+
         player.SetActive(true);
-        
-        Color assignedColor = playerColorMap.ContainsKey(player) ? playerColorMap[player] : Color.white;
-        
-        player.GetComponent<PlayerSetup>().InitializePlayer(assignedColor, controlScheme, device);
+
+        Color assignedColor = playerColorMap[player];
+
+        // 🔥 THIS is the key change
+        var playerInput = player.GetComponent<PlayerInput>();
+
+        playerInput.SwitchCurrentControlScheme(controlScheme, device);
+
+        // OR better (recommended): initialize via PlayerInput
+        playerInput.neverAutoSwitchControlSchemes = true;
+
+        player.GetComponent<PlayerSetup>()
+            .InitializePlayer(assignedColor, controlScheme, device);
 
         activePlayers.Add(player);
         AutoBindDrone(player);
+        wSHost.BindController(player);
     }
     
     public void ReturnPlayer(GameObject player)
@@ -102,7 +113,7 @@ public class PlayerSpawnManager : MonoBehaviour
             return;
 
         if (wsMirror == null)
-            wsMirror = FindObjectOfType<WSMirror>();
+            wsMirror = FindObjectOfType<WSMirrorOLD>();
 
         if (wsMirror == null)
         {
@@ -110,14 +121,14 @@ public class PlayerSpawnManager : MonoBehaviour
             return;
         }
 
-        bool bound = wsMirror.TryBindPlayerToAvailableDrone(
-            player,
-            autoTakeoffBoundDrone,
-            false,
-            autoTakeoffDuration
-        );
+        // bool bound = wsMirror.TryBindPlayerToAvailableDrone(
+        //     player,
+        //     autoTakeoffBoundDrone,
+        //     false,
+        //     autoTakeoffDuration
+        // );
 
-        if (!bound)
-            Debug.LogWarning($"No free drone binding available for spawned player: {player.name}");
+        // if (!bound)
+        //     Debug.LogWarning($"No free drone binding available for spawned player: {player.name}");
     }
 }

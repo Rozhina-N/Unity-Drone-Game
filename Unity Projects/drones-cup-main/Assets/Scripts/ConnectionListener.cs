@@ -4,9 +4,11 @@ using UnityEngine.InputSystem;
 
 public class ConnectionListener : MonoBehaviour
 {
-    private bool wasdJoined;
+    [SerializeField]
+    private bool wasdJoined = false;
     private HashSet<Gamepad> joinedGamepads = new HashSet<Gamepad>();
-    
+
+
     void Update()
     {
         HandleKeyboardJoin();
@@ -20,6 +22,7 @@ public class ConnectionListener : MonoBehaviour
 
         if (!wasdJoined && Keyboard.current.spaceKey.wasPressedThisFrame)
         {
+            Debug.Log($"wasdjoined: {wasdJoined}");
             PlayerSpawnManager.Instance.SpawnPlayer("WASD", Keyboard.current);
             wasdJoined = true;
             Debug.Log("Keyboard joined via WASD input scheme");

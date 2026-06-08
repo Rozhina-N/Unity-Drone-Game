@@ -1089,7 +1089,7 @@ MonoBehaviour:
   rescueTargetSearchRoot: {fileID: 0}
   cylinderRadius: 8
   minimumHeightAboveFire: 0.5
-  maximumHeightAboveFire: 5
+  maximumHeightAboveFire: 15
   useWaterCapacity: 1
   maxWaterAmount: 400
   startingWaterAmount: 400
@@ -1105,7 +1105,7 @@ MonoBehaviour:
   waterRefillPerSecond: 50
   rescueRange: 4
   minimumHeightAboveTarget: 0.5
-  maximumHeightAboveTarget: 5
+  maximumHeightAboveTarget: 15
   rescueCarryLimit: 5
   rescueDropOffAreas:
   - {fileID: 0}

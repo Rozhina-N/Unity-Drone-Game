@@ -781,7 +781,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerSetup
   playerRenderer: {fileID: 8091729507605585472}
-  PlayerColor: {r: 0, g: 0, b: 0, a: 0}
 --- !u!114 &4717889769461006847
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -816,7 +815,7 @@ MonoBehaviour:
   rescueTargetSearchRoot: {fileID: 0}
   cylinderRadius: 8
   minimumHeightAboveFire: 0.5
-  maximumHeightAboveFire: 5
+  maximumHeightAboveFire: 15
   useWaterCapacity: 1
   maxWaterAmount: 100
   startingWaterAmount: 100
@@ -832,7 +831,7 @@ MonoBehaviour:
   waterRefillPerSecond: 50
   rescueRange: 4
   minimumHeightAboveTarget: 0.5
-  maximumHeightAboveTarget: 5
+  maximumHeightAboveTarget: 15
   rescueCarryLimit: 3
   rescueDropOffAreas:
   - {fileID: 0}

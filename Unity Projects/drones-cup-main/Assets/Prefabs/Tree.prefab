@@ -163,7 +163,8 @@ MonoBehaviour:
   extinguishingFireMaterial: {fileID: 2100000, guid: f4e4964faf1f71848b2cb0f10122a0c3, type: 2}
   burnDuration: 15
   redTintIntensity: 0.65
-  extinguishDuration: 2
+  extinguishDuration: 0.75
   shrinkSpeed: 1
+  extinguishingVisualLocalOffset: {x: 0, y: 0, z: -0.01}
   blockIgnitionAfterSuccessfulExtinguish: 1
   treeRenderer: {fileID: 0}

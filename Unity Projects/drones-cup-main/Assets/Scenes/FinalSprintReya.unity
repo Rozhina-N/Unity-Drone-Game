@@ -1741,8 +1741,8 @@ MonoBehaviour:
   openingEdgePadding: 10
   minimumSpacingBetweenTargets: 5
   maxPlacementAttemptsPerTarget: 25
-  minimumScaleMultiplier: 3
-  maximumScaleMultiplier: 8
+  minimumScaleMultiplier: 4
+  maximumScaleMultiplier: 9
   spawnOnStart: 1
   clearExistingTargetsBeforeSpawning: 1
 --- !u!4 &1981800417

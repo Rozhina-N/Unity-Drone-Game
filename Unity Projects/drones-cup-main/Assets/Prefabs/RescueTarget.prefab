@@ -127,24 +127,34 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RescueTarget
   targetRenderer: {fileID: 2264234886183322456}
-  pulseMotion: {fileID: 0}
-  neutralTintColor: {r: 0.38679248, g: 0.38679248, b: 0.38679248, a: 1}
-  rescueDuration: 2
+  pulseMotion: {fileID: 3167522388983513867}
+  neutralTintColor: {r: 0.3882353, g: 0.3882353, b: 0.3882353, a: 1}
+  rescueDuration: 1.5
   shrinkSpeed: 1
   rescueTintColor: {r: 0, g: 0.3921569, b: 0, a: 1}
-  minimumSizeBeforeRescued: 0.1
+  minimumSizeBeforeRescued: 0.35
   threatRadius: 18
   minimumNearbyFireCount: 1
   maxFireCountInfluence: 3
   dangerTintColor: {r: 1, g: 0, b: 0, a: 1}
-  redTintStrength: 0.85
-  pulseReductionAmount: 1
-  dangerShrinkSpeed: 0.2
-  minimumSizeAtMaxThreat: 0
-  deathSizeThreshold: 0.2
+  redTintStrength: 0.75
+  deadTintColor: {r: 0, g: 0, b: 0, a: 1}
+  blackTintStart: 0.85
+  dangerDamageSpeed: 0.125
+  showDeadLabel: 1
+  autoCreateDeadLabelIfMissing: 1
+  deadLabelCanvas: {fileID: 0}
+  deadLabelBackground: {fileID: 0}
+  deadLabelText: {fileID: 0}
+  deadLabelMessage: DEAD
+  deadLabelOffset: {x: 0, y: 1.2, z: 0}
+  deadLabelSize: {x: 120, y: 34}
+  deadLabelWorldScale: 0.01
+  deadLabelFontSize: 28
+  deadLabelBackgroundColor: {r: 0, g: 0, b: 0, a: 0.75}
+  deadLabelTextColor: {r: 1, g: 1, b: 1, a: 1}
   recoverySpeed: 0.3
   colorRecoverySpeed: 1
-  pulseRecoverySpeed: 1
 --- !u!114 &3167522388983513867
 MonoBehaviour:
   m_ObjectHideFlags: 0

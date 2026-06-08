@@ -1,10 +1,15 @@
 using UnityEngine;
+using UnityEngine.Serialization;
+using UnityEngine.UI;
 
 [DisallowMultipleComponent]
 public class RescueTarget : MonoBehaviour
 {
     private const string BaseColorProperty = "_BaseColor";
     private const string ColorProperty = "_Color";
+    private const string DefaultDeadLabelCanvasName = "DeadLabelCanvas";
+    private const string DeadLabelBackgroundName = "Background";
+    private const string DeadLabelTextName = "Text";
 
     [SerializeField] private Renderer targetRenderer;
     [SerializeField] private PulseMotion pulseMotion;
@@ -24,15 +29,27 @@ public class RescueTarget : MonoBehaviour
     [SerializeField] [Min(1)] private int maxFireCountInfluence = 5;
     [SerializeField] private Color dangerTintColor = Color.red;
     [SerializeField] [Range(0f, 1f)] private float redTintStrength = 0.85f;
-    [SerializeField] [Range(0f, 1f)] private float pulseReductionAmount = 1f;
-    [SerializeField] [Min(0f)] private float dangerShrinkSpeed = 0.2f;
-    [SerializeField] [Range(0f, 1f)] private float minimumSizeAtMaxThreat = 0f;
-    [SerializeField] [Min(0f)] private float deathSizeThreshold = 0.02f;
+    [SerializeField] private Color deadTintColor = Color.black;
+    [SerializeField] [Range(0.01f, 0.99f)] private float blackTintStart = 0.85f;
+    [SerializeField] [FormerlySerializedAs("dangerShrinkSpeed")] [Min(0f)] private float dangerDamageSpeed = 0.2f;
+
+    [Header("Dead Label")]
+    [SerializeField] private bool showDeadLabel = true;
+    [SerializeField] private bool autoCreateDeadLabelIfMissing = true;
+    [SerializeField] private Canvas deadLabelCanvas;
+    [SerializeField] private Image deadLabelBackground;
+    [SerializeField] private Text deadLabelText;
+    [SerializeField] private string deadLabelMessage = "DEAD";
+    [SerializeField] private Vector3 deadLabelOffset = new Vector3(0f, 1.2f, 0f);
+    [SerializeField] private Vector2 deadLabelSize = new Vector2(120f, 34f);
+    [SerializeField] [Min(0.0001f)] private float deadLabelWorldScale = 0.01f;
+    [SerializeField] [Min(1)] private int deadLabelFontSize = 28;
+    [SerializeField] private Color deadLabelBackgroundColor = new Color(0f, 0f, 0f, 0.75f);
+    [SerializeField] private Color deadLabelTextColor = Color.white;
 
     [Header("Recovery")]
     [SerializeField] [Min(0f)] private float recoverySpeed = 0.3f;
     [SerializeField] [Min(0f)] private float colorRecoverySpeed = 1f;
-    [SerializeField] [Min(0f)] private float pulseRecoverySpeed = 1f;
 
     public Renderer TargetRenderer => targetRenderer;
     public PulseMotion PulseMotion => pulseMotion;
@@ -50,9 +67,12 @@ public class RescueTarget : MonoBehaviour
     private float rescueProgress;
     private float sizeMultiplier = 1f;
     private float currentDangerPressure;
-    private float displayedDangerPressure;
-    private float currentPulseMultiplier = 1f;
+    private float fireDamageProgress;
+    private Camera targetCamera;
+    private RectTransform deadLabelCanvasRectTransform;
+    private RectTransform deadLabelBackgroundRectTransform;
     private bool isBeingRescued;
+    private bool isDead;
     private bool hasBeenRemoved;
 
     private void Awake()
@@ -61,6 +81,8 @@ public class RescueTarget : MonoBehaviour
         CacheRendererIfNeeded();
         CachePulseIfNeeded();
         CacheColorState();
+        ResolveDeadLabelReferences();
+        SetDeadLabelVisible(false);
         ApplyCurrentSize();
         ApplyPulseSettings(1f);
         ApplyTargetColor(neutralTintColor);
@@ -70,6 +92,7 @@ public class RescueTarget : MonoBehaviour
     {
         CacheRendererIfNeeded();
         CachePulseIfNeeded();
+        ResolveDeadLabelReferences();
     }
 
     public void ApplySpawnScale(float scaleMultiplier)
@@ -108,6 +131,16 @@ public class RescueTarget : MonoBehaviour
         UpdateThreatEffects();
     }
 
+    private void LateUpdate()
+    {
+        if (!isDead || !showDeadLabel || deadLabelCanvas == null)
+        {
+            return;
+        }
+
+        UpdateDeadLabelTransform();
+    }
+
     public void BeginRescue()
     {
         if (hasBeenRemoved)
@@ -130,10 +163,8 @@ public class RescueTarget : MonoBehaviour
         rescueProgress = 0f;
         sizeMultiplier = 1f;
         ApplyCurrentSize();
-        displayedDangerPressure = 0f;
-        currentPulseMultiplier = 1f;
         ApplyPulseSettings(1f);
-        ApplyTargetColor(neutralTintColor);
+        ApplyThreatColor();
     }
 
     private void UpdateRescue()
@@ -152,57 +183,53 @@ public class RescueTarget : MonoBehaviour
 
     private void UpdateThreatEffects()
     {
-        float targetSizeMultiplier = Mathf.Lerp(1f, minimumSizeAtMaxThreat, currentDangerPressure);
-        float sizeChangeSpeed = targetSizeMultiplier < sizeMultiplier ? dangerShrinkSpeed : recoverySpeed;
-        sizeMultiplier = Mathf.MoveTowards(sizeMultiplier, targetSizeMultiplier, sizeChangeSpeed * Time.deltaTime);
+        sizeMultiplier = Mathf.MoveTowards(sizeMultiplier, 1f, recoverySpeed * Time.deltaTime);
         ApplyCurrentSize();
 
-        float targetPulseMultiplier = 1f - (currentDangerPressure * pulseReductionAmount);
-        float pulseChangeSpeed = targetPulseMultiplier < currentPulseMultiplier ? 1f : pulseRecoverySpeed;
-        if (targetPulseMultiplier < currentPulseMultiplier)
+        if (currentDangerPressure > 0f)
         {
-            currentPulseMultiplier = targetPulseMultiplier;
+            fireDamageProgress = Mathf.MoveTowards(
+                fireDamageProgress,
+                1f,
+                dangerDamageSpeed * currentDangerPressure * Time.deltaTime);
         }
         else
         {
-            currentPulseMultiplier = Mathf.MoveTowards(currentPulseMultiplier, targetPulseMultiplier, pulseChangeSpeed * Time.deltaTime);
+            fireDamageProgress = Mathf.MoveTowards(fireDamageProgress, 0f, colorRecoverySpeed * Time.deltaTime);
         }
 
-        ApplyPulseSettings(currentPulseMultiplier);
+        ApplyPulseSettings(1f);
+        ApplyThreatColor();
 
-        if (currentDangerPressure > displayedDangerPressure)
+        if (fireDamageProgress >= 1f)
         {
-            displayedDangerPressure = currentDangerPressure;
-        }
-        else
-        {
-            displayedDangerPressure = Mathf.MoveTowards(displayedDangerPressure, currentDangerPressure, colorRecoverySpeed * Time.deltaTime);
-        }
-
-        Color strongDangerColor = Color.Lerp(neutralTintColor, dangerTintColor, redTintStrength);
-        ApplyTargetColor(Color.Lerp(neutralTintColor, strongDangerColor, displayedDangerPressure));
-
-        if (sizeMultiplier <= deathSizeThreshold)
-        {
-            RemoveTarget();
+            MarkDead();
         }
     }
 
     private float EvaluateDangerPressure()
     {
         int nearbyThreatTreeCount = CountNearbyThreatTrees();
-        if (nearbyThreatTreeCount < minimumNearbyFireCount)
+        if (nearbyThreatTreeCount <= 0)
         {
             return 0f;
         }
 
-        int effectiveMaxFireCount = Mathf.Max(minimumNearbyFireCount, maxFireCountInfluence);
-        if (effectiveMaxFireCount == minimumNearbyFireCount)
+        int requiredFireCount = Mathf.Max(1, minimumNearbyFireCount);
+        if (nearbyThreatTreeCount < requiredFireCount)
+        {
+            return 0f;
+        }
+
+        int effectiveMaxFireCount = Mathf.Max(requiredFireCount, maxFireCountInfluence);
+        if (effectiveMaxFireCount == requiredFireCount)
         {
             return 1f;
         }
 
-        return Mathf.InverseLerp(minimumNearbyFireCount, effectiveMaxFireCount, nearbyThreatTreeCount);
+        float dangerStepCount = effectiveMaxFireCount - requiredFireCount + 1f;
+        float activeDangerSteps = nearbyThreatTreeCount - requiredFireCount + 1f;
+        return Mathf.Clamp01(activeDangerSteps / dangerStepCount);
     }
 
     private int CountNearbyThreatTrees()
@@ -322,6 +349,26 @@ public class RescueTarget : MonoBehaviour
         pulseMotion.SetPulseSpeedMultiplier(clampedMultiplier);
     }
 
+    private void ApplyThreatColor()
+    {
+        ApplyTargetColor(EvaluateThreatColor(fireDamageProgress));
+    }
+
+    private Color EvaluateThreatColor(float progress)
+    {
+        float clampedProgress = Mathf.Clamp01(progress);
+        Color strongDangerColor = Color.Lerp(neutralTintColor, dangerTintColor, redTintStrength);
+
+        if (clampedProgress <= blackTintStart)
+        {
+            float redProgress = blackTintStart > 0f ? clampedProgress / blackTintStart : 1f;
+            return Color.Lerp(neutralTintColor, strongDangerColor, redProgress);
+        }
+
+        float blackProgress = Mathf.InverseLerp(blackTintStart, 1f, clampedProgress);
+        return Color.Lerp(strongDangerColor, deadTintColor, blackProgress);
+    }
+
     private void ApplyTargetColor(Color color)
     {
         CacheRendererIfNeeded();
@@ -351,7 +398,259 @@ public class RescueTarget : MonoBehaviour
         targetRenderer.SetPropertyBlock(targetPropertyBlock);
     }
 
-    private void RemoveTarget()
+    private void ResolveDeadLabelReferences()
+    {
+        if (deadLabelCanvas == null)
+        {
+            Transform existingCanvas = transform.Find(DefaultDeadLabelCanvasName);
+            if (existingCanvas != null)
+            {
+                deadLabelCanvas = existingCanvas.GetComponent<Canvas>();
+            }
+        }
+
+        if (deadLabelCanvas != null)
+        {
+            deadLabelCanvasRectTransform = deadLabelCanvas.GetComponent<RectTransform>();
+
+            if (deadLabelBackground == null)
+            {
+                Transform existingBackground = deadLabelCanvas.transform.Find(DeadLabelBackgroundName);
+                if (existingBackground != null)
+                {
+                    deadLabelBackground = existingBackground.GetComponent<Image>();
+                }
+            }
+
+            if (deadLabelText == null)
+            {
+                Transform existingText = deadLabelCanvas.transform.Find(DeadLabelTextName);
+                if (existingText != null)
+                {
+                    deadLabelText = existingText.GetComponent<Text>();
+                }
+            }
+        }
+
+        targetCamera = Camera.main;
+    }
+
+    private void EnsureDeadLabel()
+    {
+        if (!showDeadLabel)
+        {
+            return;
+        }
+
+        ResolveDeadLabelReferences();
+
+        if (deadLabelCanvas == null && autoCreateDeadLabelIfMissing)
+        {
+            deadLabelCanvas = CreateDeadLabelCanvas();
+        }
+
+        if (deadLabelCanvas == null)
+        {
+            return;
+        }
+
+        deadLabelCanvasRectTransform = deadLabelCanvas.GetComponent<RectTransform>();
+        ConfigureDeadLabelCanvas();
+
+        if (deadLabelBackground == null)
+        {
+            deadLabelBackground = FindOrCreateDeadLabelBackground(deadLabelCanvas.transform);
+        }
+
+        if (deadLabelBackground != null)
+        {
+            deadLabelBackgroundRectTransform = deadLabelBackground.rectTransform;
+            ConfigureDeadLabelBackground();
+        }
+
+        if (deadLabelText == null)
+        {
+            Transform textParent = deadLabelBackground != null ? deadLabelBackground.transform : deadLabelCanvas.transform;
+            deadLabelText = FindOrCreateDeadLabelText(textParent);
+        }
+
+        ConfigureDeadLabelText();
+        UpdateDeadLabelTransform();
+    }
+
+    private Canvas CreateDeadLabelCanvas()
+    {
+        GameObject canvasObject = new GameObject(DefaultDeadLabelCanvasName, typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler));
+        canvasObject.transform.SetParent(transform, false);
+        canvasObject.layer = gameObject.layer;
+
+        Canvas canvas = canvasObject.GetComponent<Canvas>();
+        canvas.renderMode = RenderMode.WorldSpace;
+        canvas.overrideSorting = true;
+        canvas.sortingOrder = 30;
+
+        CanvasScaler scaler = canvasObject.GetComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ConstantPixelSize;
+        scaler.dynamicPixelsPerUnit = 10f;
+
+        return canvas;
+    }
+
+    private Image FindOrCreateDeadLabelBackground(Transform parent)
+    {
+        Transform existing = parent.Find(DeadLabelBackgroundName);
+        if (existing != null && existing.TryGetComponent(out Image existingImage))
+        {
+            existingImage.raycastTarget = false;
+            return existingImage;
+        }
+
+        GameObject backgroundObject = new GameObject(DeadLabelBackgroundName, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        backgroundObject.transform.SetParent(parent, false);
+        backgroundObject.layer = parent.gameObject.layer;
+
+        Image image = backgroundObject.GetComponent<Image>();
+        image.raycastTarget = false;
+        return image;
+    }
+
+    private Text FindOrCreateDeadLabelText(Transform parent)
+    {
+        Transform existing = parent.Find(DeadLabelTextName);
+        if (existing != null && existing.TryGetComponent(out Text existingText))
+        {
+            existingText.raycastTarget = false;
+            return existingText;
+        }
+
+        GameObject textObject = new GameObject(DeadLabelTextName, typeof(RectTransform), typeof(CanvasRenderer), typeof(Text));
+        textObject.transform.SetParent(parent, false);
+        textObject.layer = parent.gameObject.layer;
+
+        Text text = textObject.GetComponent<Text>();
+        text.text = deadLabelMessage;
+        return text;
+    }
+
+    private void ConfigureDeadLabelCanvas()
+    {
+        if (deadLabelCanvasRectTransform == null)
+        {
+            return;
+        }
+
+        deadLabelCanvasRectTransform.sizeDelta = deadLabelSize;
+        deadLabelCanvasRectTransform.pivot = new Vector2(0.5f, 0.5f);
+        deadLabelCanvasRectTransform.localScale = Vector3.one * deadLabelWorldScale;
+    }
+
+    private void ConfigureDeadLabelBackground()
+    {
+        if (deadLabelBackground == null)
+        {
+            return;
+        }
+
+        deadLabelBackground.color = deadLabelBackgroundColor;
+
+        if (deadLabelBackgroundRectTransform == null)
+        {
+            deadLabelBackgroundRectTransform = deadLabelBackground.rectTransform;
+        }
+
+        deadLabelBackgroundRectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+        deadLabelBackgroundRectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+        deadLabelBackgroundRectTransform.pivot = new Vector2(0.5f, 0.5f);
+        deadLabelBackgroundRectTransform.anchoredPosition = Vector2.zero;
+        deadLabelBackgroundRectTransform.sizeDelta = deadLabelSize;
+    }
+
+    private void ConfigureDeadLabelText()
+    {
+        if (deadLabelText == null)
+        {
+            return;
+        }
+
+        deadLabelText.text = deadLabelMessage;
+        deadLabelText.alignment = TextAnchor.MiddleCenter;
+        deadLabelText.font = deadLabelText.font != null ? deadLabelText.font : GetDefaultFont();
+        deadLabelText.fontStyle = FontStyle.Bold;
+        deadLabelText.fontSize = deadLabelFontSize;
+        deadLabelText.resizeTextForBestFit = true;
+        deadLabelText.resizeTextMinSize = Mathf.Min(8, deadLabelFontSize);
+        deadLabelText.resizeTextMaxSize = deadLabelFontSize;
+        deadLabelText.raycastTarget = false;
+        deadLabelText.color = deadLabelTextColor;
+
+        RectTransform textRect = deadLabelText.rectTransform;
+        textRect.anchorMin = Vector2.zero;
+        textRect.anchorMax = Vector2.one;
+        textRect.offsetMin = Vector2.zero;
+        textRect.offsetMax = Vector2.zero;
+    }
+
+    private void SetDeadLabelVisible(bool visible)
+    {
+        if (visible)
+        {
+            EnsureDeadLabel();
+        }
+
+        bool shouldShow = visible && showDeadLabel;
+        if (deadLabelCanvas != null)
+        {
+            deadLabelCanvas.enabled = shouldShow;
+        }
+    }
+
+    private void UpdateDeadLabelTransform()
+    {
+        if (deadLabelCanvas == null)
+        {
+            return;
+        }
+
+        if (targetCamera == null)
+        {
+            targetCamera = Camera.main;
+        }
+
+        Transform labelTransform = deadLabelCanvas.transform;
+        labelTransform.position = transform.position + deadLabelOffset;
+        labelTransform.localScale = Vector3.one * deadLabelWorldScale;
+
+        if (targetCamera != null)
+        {
+            labelTransform.rotation = targetCamera.transform.rotation;
+            deadLabelCanvas.worldCamera = targetCamera;
+        }
+    }
+
+    private void SetCollidersEnabled(bool enabled)
+    {
+        Collider[] colliders = GetComponentsInChildren<Collider>(true);
+        for (int i = 0; i < colliders.Length; i++)
+        {
+            if (colliders[i] != null)
+            {
+                colliders[i].enabled = enabled;
+            }
+        }
+    }
+
+    private Font GetDefaultFont()
+    {
+        Font font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        if (font != null)
+        {
+            return font;
+        }
+
+        return Resources.GetBuiltinResource<Font>("Arial.ttf");
+    }
+
+    private void MarkDead()
     {
         if (hasBeenRemoved)
         {
@@ -359,23 +658,25 @@ public class RescueTarget : MonoBehaviour
         }
 
         hasBeenRemoved = true;
+        isDead = true;
         isBeingRescued = false;
         RescueCompleted = null;
+        fireDamageProgress = 1f;
+        sizeMultiplier = 1f;
+        ApplyCurrentSize();
+        ApplyPulseSettings(0f);
+        ApplyTargetColor(deadTintColor);
+        SetCollidersEnabled(false);
+        SetDeadLabelVisible(true);
         TargetLostToFire?.Invoke(this);
-
-        if (Application.isPlaying)
-        {
-            Destroy(gameObject);
-            return;
-        }
-
-        DestroyImmediate(gameObject);
     }
 
     private void CompleteRescue()
     {
         hasBeenRemoved = true;
         isBeingRescued = false;
+        isDead = false;
+        SetDeadLabelVisible(false);
         gameObject.SetActive(false);
         RescueCompleted?.Invoke(this);
     }
@@ -405,9 +706,11 @@ public class RescueTarget : MonoBehaviour
             maxFireCountInfluence = minimumNearbyFireCount;
         }
 
-        if (deathSizeThreshold < 0f)
-        {
-            deathSizeThreshold = 0f;
-        }
+        blackTintStart = Mathf.Clamp(blackTintStart, 0.01f, 0.99f);
+        dangerDamageSpeed = Mathf.Max(0f, dangerDamageSpeed);
+        deadLabelSize.x = Mathf.Max(1f, deadLabelSize.x);
+        deadLabelSize.y = Mathf.Max(1f, deadLabelSize.y);
+        deadLabelWorldScale = Mathf.Max(0.0001f, deadLabelWorldScale);
+        deadLabelFontSize = Mathf.Max(1, deadLabelFontSize);
     }
 }

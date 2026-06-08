@@ -131,7 +131,7 @@ MonoBehaviour:
   neutralTintColor: {r: 0.3882353, g: 0.3882353, b: 0.3882353, a: 1}
   rescueDuration: 1.5
   shrinkSpeed: 1
-  rescueTintColor: {r: 0, g: 0.3921569, b: 0, a: 1}
+  rescueTintColor: {r: 0.5764706, g: 0.4392157, b: 0.8588236, a: 1}
   minimumSizeBeforeRescued: 0.5
   threatRadius: 18
   minimumNearbyFireCount: 1

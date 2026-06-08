@@ -18,6 +18,20 @@ public class FinalSprintGameFlow : MonoBehaviour
     [SerializeField] private bool pauseTimeBeforeStart = true;
     [SerializeField] private bool pauseTimeOnEnd = true;
 
+    [Header("Text")]
+    [SerializeField] private string startTitleText = "Final Sprint";
+    [SerializeField] private string startSubtitleText = "Ready?";
+    [SerializeField] private string startButtonText = "Start";
+    [SerializeField] private string endTitleText = "Game Over";
+    [SerializeField] private string restartButtonText = "Restart";
+    [SerializeField] private string endButtonText = "End";
+    [SerializeField] private string timeUpEndReasonText = "Time is up";
+    [SerializeField] private string completedEndReasonText = "All fires are out and all available people are dropped off";
+    [SerializeField] private string earlyEndReasonText = "Game ended early";
+    [SerializeField] private string finalScoreFormat = "Final Score: {0} / {1}";
+    [SerializeField] private string finalScoreUnavailableText = "Final Score: N/A";
+    [SerializeField] private string timerFormat = "{0:00}:{1:00}";
+
     [Header("Optional References")]
     [SerializeField] private ScoreManager scoreManager;
     [SerializeField] private Canvas gameFlowCanvas;
@@ -58,6 +72,7 @@ public class FinalSprintGameFlow : MonoBehaviour
     private void Start()
     {
         EnsureUi();
+        ApplyConfiguredText();
         WireButtons();
         ShowStartScreen();
     }
@@ -74,13 +89,13 @@ public class FinalSprintGameFlow : MonoBehaviour
 
         if (elapsedSeconds >= gameDurationSeconds)
         {
-            EndGame("Time is up");
+            EndGame(timeUpEndReasonText);
             return;
         }
 
         if (elapsedSeconds >= completionCheckDelay && AreAllFiresOut() && AreAllAvailablePeopleDroppedOff())
         {
-            EndGame("All fires are out and all available people are dropped off");
+            EndGame(completedEndReasonText);
         }
     }
 
@@ -122,7 +137,7 @@ public class FinalSprintGameFlow : MonoBehaviour
             return;
         }
 
-        EndGame("Game ended early");
+        EndGame(earlyEndReasonText);
     }
 
     public void RestartGame()
@@ -286,19 +301,19 @@ public class FinalSprintGameFlow : MonoBehaviour
     private GameObject CreateStartScreen(Transform parent)
     {
         GameObject screen = CreateFullScreenRoot("Start Screen", parent, true);
-        CreateText("Title", screen.transform, "Final Sprint", 64, FontStyle.Bold, new Vector2(0f, 105f), new Vector2(720f, 90f));
-        CreateText("Subtitle", screen.transform, "Ready?", 34, FontStyle.Normal, new Vector2(0f, 25f), new Vector2(360f, 55f));
-        startButton = CreateButton("Start Button", screen.transform, "Start", buttonColor, new Vector2(0f, -75f), new Vector2(230f, 64f));
+        CreateText("Title", screen.transform, startTitleText, 64, FontStyle.Bold, new Vector2(0f, 105f), new Vector2(720f, 90f));
+        CreateText("Subtitle", screen.transform, startSubtitleText, 34, FontStyle.Normal, new Vector2(0f, 25f), new Vector2(360f, 55f));
+        startButton = CreateButton("Start Button", screen.transform, startButtonText, buttonColor, new Vector2(0f, -75f), new Vector2(230f, 64f));
         return screen;
     }
 
     private GameObject CreateEndScreen(Transform parent)
     {
         GameObject screen = CreateFullScreenRoot("End Screen", parent, true);
-        CreateText("Title", screen.transform, "Game Over", 64, FontStyle.Bold, new Vector2(0f, 130f), new Vector2(720f, 90f));
+        CreateText("Title", screen.transform, endTitleText, 64, FontStyle.Bold, new Vector2(0f, 130f), new Vector2(720f, 90f));
         endReasonText = CreateText("End Reason", screen.transform, string.Empty, 28, FontStyle.Normal, new Vector2(0f, 55f), new Vector2(900f, 50f));
         finalScoreText = CreateText("Final Score", screen.transform, string.Empty, 38, FontStyle.Bold, new Vector2(0f, -5f), new Vector2(520f, 62f));
-        restartButton = CreateButton("Restart Button", screen.transform, "Restart", buttonColor, new Vector2(0f, -105f), new Vector2(250f, 64f));
+        restartButton = CreateButton("Restart Button", screen.transform, restartButtonText, buttonColor, new Vector2(0f, -105f), new Vector2(250f, 64f));
         return screen;
     }
 
@@ -336,7 +351,7 @@ public class FinalSprintGameFlow : MonoBehaviour
 
     private Button CreateEndButton(Transform parent)
     {
-        Button button = CreateButton("End Button", parent, "End", endButtonColor, new Vector2(20f, 20f), new Vector2(130f, 48f));
+        Button button = CreateButton("End Button", parent, endButtonText, endButtonColor, new Vector2(20f, 20f), new Vector2(130f, 48f));
         RectTransform rect = button.GetComponent<RectTransform>();
         rect.anchorMin = new Vector2(0f, 0f);
         rect.anchorMax = new Vector2(0f, 0f);
@@ -344,6 +359,44 @@ public class FinalSprintGameFlow : MonoBehaviour
         rect.anchoredPosition = new Vector2(20f, 20f);
         button.transform.SetAsLastSibling();
         return button;
+    }
+
+    private void ApplyConfiguredText()
+    {
+        ApplyNamedChildText(startScreenRoot, "Title", startTitleText);
+        ApplyNamedChildText(startScreenRoot, "Subtitle", startSubtitleText);
+        ApplyNamedChildText(endScreenRoot, "Title", endTitleText);
+        ApplyButtonText(startButton, startButtonText);
+        ApplyButtonText(restartButton, restartButtonText);
+        ApplyButtonText(endButton, endButtonText);
+    }
+
+    private void ApplyNamedChildText(GameObject root, string childName, string text)
+    {
+        if (root == null)
+        {
+            return;
+        }
+
+        Transform child = root.transform.Find(childName);
+        if (child != null && child.TryGetComponent(out Text label))
+        {
+            label.text = text;
+        }
+    }
+
+    private void ApplyButtonText(Button button, string text)
+    {
+        if (button == null)
+        {
+            return;
+        }
+
+        Text label = button.GetComponentInChildren<Text>(true);
+        if (label != null)
+        {
+            label.text = text;
+        }
     }
 
     private GameObject CreateFullScreenRoot(string objectName, Transform parent, bool includeOverlay)
@@ -449,7 +502,7 @@ public class FinalSprintGameFlow : MonoBehaviour
         int wholeSeconds = Mathf.CeilToInt(remainingSeconds);
         int minutes = wholeSeconds / 60;
         int seconds = wholeSeconds % 60;
-        timerText.text = string.Format("{0:00}:{1:00}", minutes, seconds);
+        timerText.text = FormatText(timerFormat, "{0:00}:{1:00}", minutes, seconds);
     }
 
     private void UpdateEndScreen(string reason)
@@ -468,11 +521,25 @@ public class FinalSprintGameFlow : MonoBehaviour
 
         if (scoreManager == null)
         {
-            finalScoreText.text = "Final Score: N/A";
+            finalScoreText.text = finalScoreUnavailableText;
             return;
         }
 
-        finalScoreText.text = string.Format("Final Score: {0} / {1}", scoreManager.CurrentScore, scoreManager.MaxScore);
+        finalScoreText.text = FormatText(finalScoreFormat, "Final Score: {0} / {1}", scoreManager.CurrentScore, scoreManager.MaxScore);
+    }
+
+    private string FormatText(string format, string fallbackFormat, params object[] args)
+    {
+        string safeFormat = string.IsNullOrWhiteSpace(format) ? fallbackFormat : format;
+
+        try
+        {
+            return string.Format(safeFormat, args);
+        }
+        catch (System.FormatException)
+        {
+            return string.Format(fallbackFormat, args);
+        }
     }
 
     private void SetEndButtonInteractable(bool interactable)

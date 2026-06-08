@@ -132,7 +132,7 @@ MonoBehaviour:
   rescueDuration: 1.5
   shrinkSpeed: 1
   rescueTintColor: {r: 0, g: 0.3921569, b: 0, a: 1}
-  minimumSizeBeforeRescued: 0.35
+  minimumSizeBeforeRescued: 0.5
   threatRadius: 18
   minimumNearbyFireCount: 1
   maxFireCountInfluence: 3

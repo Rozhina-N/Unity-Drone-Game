@@ -2005,6 +2005,18 @@ MonoBehaviour:
   completionCheckDelay: 0.25
   pauseTimeBeforeStart: 1
   pauseTimeOnEnd: 1
+  startTitleText: Fire & Rescue
+  startSubtitleText: Ready?
+  startButtonText: Start
+  endTitleText: Game Over
+  restartButtonText: Restart
+  endButtonText: End
+  timeUpEndReasonText: Time is up
+  completedEndReasonText: No more fires & rescue targets remaining
+  earlyEndReasonText: Game ended early
+  finalScoreFormat: 'Final Score: {0} / {1}'
+  finalScoreUnavailableText: 'Final Score: N/A'
+  timerFormat: '{0:00}:{1:00}'
   scoreManager: {fileID: 1590258557}
   gameFlowCanvas: {fileID: 0}
   startScreenRoot: {fileID: 0}

@@ -78,9 +78,9 @@ public class FinalSprintGameFlow : MonoBehaviour
             return;
         }
 
-        if (elapsedSeconds >= completionCheckDelay && AreAllFiresOut() && AreAllAvailablePeopleRescued())
+        if (elapsedSeconds >= completionCheckDelay && AreAllFiresOut() && AreAllAvailablePeopleDroppedOff())
         {
-            EndGame("All fires are out and all available people are rescued");
+            EndGame("All fires are out and all available people are dropped off");
         }
     }
 
@@ -192,8 +192,13 @@ public class FinalSprintGameFlow : MonoBehaviour
         return true;
     }
 
-    private bool AreAllAvailablePeopleRescued()
+    private bool AreAllAvailablePeopleDroppedOff()
     {
+        if (HasPeopleCarriedByDrones())
+        {
+            return false;
+        }
+
         RescueTarget[] rescueTargets = FindObjectsByType<RescueTarget>(FindObjectsInactive.Include, FindObjectsSortMode.None);
         for (int i = 0; i < rescueTargets.Length; i++)
         {
@@ -205,6 +210,21 @@ public class FinalSprintGameFlow : MonoBehaviour
         }
 
         return true;
+    }
+
+    private bool HasPeopleCarriedByDrones()
+    {
+        FirefighterInteraction[] firefighters = FindObjectsByType<FirefighterInteraction>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < firefighters.Length; i++)
+        {
+            FirefighterInteraction firefighter = firefighters[i];
+            if (firefighter != null && firefighter.CarriedRescueCount > 0)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void ResolveReferences()

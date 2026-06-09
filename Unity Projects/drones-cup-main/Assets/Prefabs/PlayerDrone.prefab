@@ -1102,7 +1102,7 @@ MonoBehaviour:
   - Drone Landpad Fire 2
   useWaterRefillHeightCheck: 0
   waterRefillHeightTolerance: 5
-  waterRefillPerSecond: 50
+  waterRefillPerSecond: 200
   rescueRange: 4
   minimumHeightAboveTarget: 0.5
   maximumHeightAboveTarget: 5

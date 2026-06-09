@@ -95,6 +95,11 @@ public class WSHostOLD : MonoBehaviour
         StartCoroutine(SendPositionCoroutine());
     }
 
+    void Stop()
+    {
+        wss.Stop();
+    }
+
     // 🔥 FIRST PLAYER LOCKS CONTROL
     public bool BindController(GameObject drone)
     {
@@ -108,6 +113,8 @@ public class WSHostOLD : MonoBehaviour
         hasController = true;
 
         VirtualDrone = drone;
+
+        TakeOffDrone();
 
         Debug.Log($"WSHost locked to controller: {drone.name}");
         return true;
@@ -214,8 +221,10 @@ public class WSHostOLD : MonoBehaviour
     // ─────────────────────────────
     public void TakeOffDrone(float time = 2, float height = 0.3f)
     {
+        Debug.Log("attemptTakeOff");
         if (VirtualDrone == null) return;
-
+        Debug.Log("yes");
+        
         moveTo = false;
 
         JObject message = new JObject

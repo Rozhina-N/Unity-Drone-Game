@@ -1058,7 +1058,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 528f2898c68cc90438ca2dc8793e09a3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Scripts::PlayerSetup
-  playerRenderer: {fileID: 0}
+  playerRenderer: {fileID: 4580310281579199033}
 --- !u!114 &899596212419764620
 MonoBehaviour:
   m_ObjectHideFlags: 0

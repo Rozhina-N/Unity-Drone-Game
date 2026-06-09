@@ -1918,11 +1918,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Scripts::PlayerSpawnManager
   playerPrefab: {fileID: 9054791171994244081, guid: 04e41fc9b03734c469fa8328b5ac569f, type: 3}
-  spawnPoints:
-  - {fileID: 2059491886}
-  - {fileID: 19480306}
-  - {fileID: 276641061}
-  - {fileID: 564734460}
+  playerInfos:
+  - color: {r: 1, g: 0, b: 0, a: 0}
+    spawnPoint: {fileID: 19480306}
+  - color: {r: 0, g: 0, b: 1, a: 0}
+    spawnPoint: {fileID: 2059491886}
+  - color: {r: 0, g: 0.5377358, b: 0, a: 0}
+    spawnPoint: {fileID: 564734460}
+  - color: {r: 1, g: 1, b: 0, a: 0}
+    spawnPoint: {fileID: 276641061}
   autoBindDroneOnSpawn: 1
   autoTakeoffBoundDrone: 1
   autoTakeoffDuration: 2

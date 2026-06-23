@@ -21,7 +21,6 @@ public class PlayerSpawnManager : MonoBehaviour
 
     [Header("Drone Follow")]
     [SerializeField] private bool autoBindDroneOnSpawn = true;
-    [SerializeField] private bool autoTakeoffBoundDrone = true;
     [SerializeField] private float autoTakeoffDuration = 2f;
 
     private readonly Queue<GameObject> inactivePool = new Queue<GameObject>();

@@ -26,13 +26,13 @@ public class PlayerSetup : MonoBehaviour
     {
         PlayerColor = color;
 
-        // 🔥 Ensure no leftover device bindings
+        // Ensure no leftover device bindings
         playerInput.user.UnpairDevices();
 
-        // 🔥 Pair this specific device to THIS player
+        // Pair this specific device to THIS player
         InputUser.PerformPairingWithDevice(device, playerInput.user);
 
-        // 🔥 Activate correct control scheme for this player
+        // Activate correct control scheme for this player
         playerInput.SwitchCurrentControlScheme(controlScheme, device);
 
         // Ensure input is active
